@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Google Photos - TX3 Mini Vault</title>
+  <meta name="theme-color" content="#131314">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root {
+      --bg-primary: #131314;
+      --bg-surface: #1e1f20;
+      --bg-surface-elevated: #282a2c;
+      --text-primary: #e3e3e3;
+      --text-secondary: #c4c7c5;
+      --text-muted: #8e918f;
+      --accent-blue: #8ab4f8;
+      --accent-blue-hover: #aecbfa;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --chip-bg: rgba(255, 255, 255, 0.07);
+      --chip-active: #8ab4f8;
+      --chip-active-text: #041e49;
+      --grid-gap: 4px;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-full: 9999px;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* Top App Header */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(19, 19, 20, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Google Photos 4-color Pinwheel Icon */
+    .pinwheel {
+      width: 32px;
+      height: 32px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(138, 180, 248, 0.15);
+      color: var(--accent-blue);
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Search Bar */
+    .search-container {
+      flex: 1;
+      max-width: 520px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid transparent;
+      border-radius: var(--radius-full);
+      padding: 8px 16px 8px 38px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      background: var(--bg-surface-elevated);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Header Actions */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* Album Filter Chips */
+    .filter-bar {
+      position: sticky;
+      top: 57px;
+      z-index: 40;
+      background: rgba(19, 19, 20, 0.88);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .filter-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      background: var(--chip-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+    }
+
+    .chip.active {
+      background: var(--chip-active);
+      color: var(--chip-active-text);
+      border-color: var(--chip-active);
+      font-weight: 600;
+    }
+
+    .chip-count {
+      font-size: 0.72rem;
+      opacity: 0.75;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+
+    /* Main Timeline Stream */
+    .timeline-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 16px 12px 80px 12px;
+    }
+
+    .timeline-section {
+      margin-bottom: 28px;
+    }
+
+    .timeline-header {
+      position: sticky;
+      top: 103px;
+      z-index: 30;
+      background: rgba(19, 19, 20, 0.92);
+      backdrop-filter: blur(10px);
+      padding: 8px 8px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-radius: var(--radius-sm);
+    }
+
+    .timeline-month {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+
+    .timeline-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Responsive Photo Grid */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: var(--grid-gap);
+      margin-top: 6px;
+    }
+
+    @media (min-width: 768px) {
+      .photo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .photo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      }
+    }
+
+    .photo-tile {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: var(--bg-surface);
+      cursor: pointer;
+      border-radius: 4px;
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s;
+    }
+
+    .photo-tile:hover {
+      transform: scale(1.02);
+      z-index: 5;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .photo-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .photo-thumb.loaded {
+      opacity: 1;
+    }
+
+    .video-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(6px);
+      color: #fff;
+      border-radius: 20px;
+      padding: 3px 7px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .video-badge svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    /* Fullscreen Lightbox / Media Viewer */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(10, 11, 13, 0.97);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .lightbox.active {
+      display: flex;
+    }
+
+    .lightbox-topbar {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    }
+
+    .lightbox-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .lightbox-title-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lightbox-filename {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      max-width: 320px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lightbox-counter {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .lightbox-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Lightbox Stage */
+    .lightbox-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 12px;
+    }
+
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      user-select: none;
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      border-radius: 4px;
+    }
+
+    .lightbox-video {
+      max-width: 100%;
+      max-height: 100%;
+      outline: none;
+      border-radius: 6px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+
+    /* Lightbox Navigation Buttons */
+    .nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      background: rgba(30, 31, 32, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 20;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-surface-elevated);
+      transform: translateY(-50%) scale(1.08);
+    }
+
+    .nav-btn.prev { left: 18px; }
+    .nav-btn.next { right: 18px; }
+
+    .nav-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    /* Lightbox Info Drawer */
+    .lightbox-drawer {
+      position: absolute;
+      top: 0;
+      right: -360px;
+      width: 340px;
+      height: 100%;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-subtle);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.25s cubic-bezier(0.2, 0, 0, 1);
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .lightbox-drawer.open {
+      right: 0;
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .drawer-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .drawer-section {
+      margin-bottom: 22px;
+    }
+
+    .drawer-section-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent-blue);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .drawer-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .drawer-icon {
+      width: 20px;
+      height: 20px;
+      fill: var(--text-muted);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .drawer-item-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .drawer-item-val {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      word-break: break-all;
+    }
+
+    .drawer-item-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      fill: var(--text-muted);
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    /* Loading Spinner */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      gap: 16px;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(138, 180, 248, 0.15);
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+      .top-bar { padding: 8px 12px; }
+      .brand-title span:last-child { display: none; }
+      .search-container { max-width: none; }
+      .nav-btn { width: 40px; height: 40px; }
+      .nav-btn.prev { left: 8px; }
+      .nav-btn.next { right: 8px; }
+      .lightbox-drawer { width: 100%; right: -100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top App Bar -->
+  <header class="top-bar">
+    <div class="brand" onclick="filterAlbum('All')">
+      <!-- Google Photos Pinwheel SVG -->
+      <svg class="pinwheel" viewBox="0 0 100 100">
+        <path fill="#4285F4" d="M50 0C50 27.614 27.614 50 0 50v-50h50z"/>
+        <path fill="#EA4335" d="M100 50C72.386 50 50 27.614 50 0h50v50z"/>
+        <path fill="#FBBC05" d="M50 100C50 72.386 72.386 50 100 50v50H50z"/>
+        <path fill="#34A853" d="M0 50C27.614 50 50 72.386 50 100H0V50z"/>
+      </svg>
+      <div class="brand-title">
+        <span>Photos</span>
+        <span class="brand-badge">TX3 Vault</span>
+      </div>
+    </div>
+
+    <div class="search-container">
+      <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search photos, dates, albums..." oninput="handleSearch(this.value)">
+    </div>
+
+    <div class="header-actions">
+      <button class="icon-btn" onclick="rescanPhotos()" title="Rescan Library">
+        <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Album Chips -->
+  <nav class="filter-bar" id="albumChips">
+    <!-- Populated dynamically: All Photos, Random Sendai, etc. -->
+  </nav>
+
+  <!-- Main Timeline Container -->
+  <main class="timeline-container" id="timelineContainer">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading photo memories from TX3 Mini...</p>
+    </div>
+  </main>
+
+  <!-- Fullscreen Lightbox / Media Viewer -->
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-topbar">
+      <div class="lightbox-left">
+        <button class="icon-btn" onclick="closeLightbox()" title="Back">
+          <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div class="lightbox-title-wrap">
+          <div class="lightbox-filename" id="lbFilename">IMG_0001.jpg</div>
+          <div class="lightbox-counter" id="lbCounter">1 of 100</div>
+        </div>
+      </div>
+
+      <div class="lightbox-right">
+        <button class="icon-btn" onclick="downloadCurrentPhoto()" title="Download Original">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        </button>
+        <button class="icon-btn" onclick="toggleDrawer()" title="Photo Info (EXIF)">
+          <svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+        </button>
+        <button class="icon-btn" onclick="toggleFullscreen()" title="Fullscreen">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+        <button class="icon-btn" onclick="closeLightbox()" title="Close">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Lightbox Main Stage -->
+    <div class="lightbox-stage" id="lbStage">
+      <button class="nav-btn prev" onclick="prevPhoto()" title="Previous (Left Arrow)">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+
+      <img class="lightbox-img" id="lbImg" src="" alt="Photo" style="display: none;">
+      <video class="lightbox-video" id="lbVideo" controls playsinline autoplay style="display: none;"></video>
+
+      <button class="nav-btn next" onclick="nextPhoto()" title="Next (Right Arrow)">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
+    </div>
+
+    <!-- EXIF Info Slide-over Drawer -->
+    <aside class="lightbox-drawer" id="lbDrawer">
+      <div class="drawer-header">
+        <h3 class="drawer-title">Details</h3>
+        <button class="icon-btn" onclick="toggleDrawer()">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">Date & Time</div>
+        <div class="drawer-item">
+          <svg class="drawer-icon" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+          <div class="drawer-item-text">
+            <span class="drawer-item-val" id="drawerDate">--</span>
+            <span class="drawer-item-sub" id="drawerTime">--</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">File Details</div>
+        <div class="drawer-item">
+          <svg class="drawer-icon" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          <div class="drawer-item-text">
+            <span class="drawer-item-val" id="drawerFile">--</span>
+            <span class="drawer-item-sub" id="drawerDimSize">--</span>
+          </div>
+        </div>
+        <div class="drawer-item">
+          <svg class="drawer-icon" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          <div class="drawer-item-text">
+            <span class="drawer-item-val" id="drawerAlbum">--</span>
+            <span class="drawer-item-sub">Album folder</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-section" id="drawerCameraSection">
+        <div class="drawer-section-title">Camera & Optics</div>
+        <div class="drawer-item">
+          <svg class="drawer-icon" viewBox="0 0 24 24"><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+          <div class="drawer-item-text">
+            <span class="drawer-item-val" id="drawerCamera">--</span>
+            <span class="drawer-item-sub" id="drawerExifParams">--</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    let catalog = { albums: [], total_count: 0, timeline: [] };
+    let currentPhotos = [];
+    let activeAlbum = 'All';
+    let currentIndex = 0;
+    let isDrawerOpen = false;
+
+    // Detect base API URL
+    const API_BASE = window.location.origin;
+
+    async function loadCatalog() {
+      try {
+        const res = await fetch(`${API_BASE}/api/photos/catalog`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        catalog = await res.json();
+        renderAlbumChips();
+        applyFilter();
+      } catch (err) {
+        console.error('Failed to load photos catalog:', err);
+        document.getElementById('timelineContainer').innerHTML = `
+          <div class="empty-state">
+            <p>Failed to connect to TX3 Photos Vault: ${err.message}</p>
+            <button class="chip active" style="margin: 16px auto;" onclick="loadCatalog()">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    function renderAlbumChips() {
+      const bar = document.getElementById('albumChips');
+      const albums = ['All', ...catalog.albums];
+      bar.innerHTML = albums.map(a => {
+        const count = a === 'All' ? catalog.total_count : countAlbumPhotos(a);
+        return `
+          <button class="chip ${a === activeAlbum ? 'active' : ''}" onclick="filterAlbum('${a}')">
+            <span>${a === 'All' ? 'All Photos' : a}</span>
+            <span class="chip-count">${count}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function countAlbumPhotos(albumName) {
+      let count = 0;
+      for (const t of catalog.timeline) {
+        for (const p of t.photos) {
+          if (p.album === albumName) count++;
+        }
+      }
+      return count;
+    }
+
+    function filterAlbum(albumName) {
+      activeAlbum = albumName;
+      renderAlbumChips();
+      applyFilter();
+    }
+
+    function handleSearch(q) {
+      applyFilter(q.trim().toLowerCase());
+    }
+
+    function applyFilter(searchQuery = '') {
+      currentPhotos = [];
+      const filteredTimeline = [];
+
+      for (const section of catalog.timeline) {
+        const matching = section.photos.filter(p => {
+          const matchAlbum = (activeAlbum === 'All' || p.album === activeAlbum);
+          if (!matchAlbum) return false;
+          if (!searchQuery) return true;
+          return p.name.toLowerCase().includes(searchQuery) ||
+                 p.date_str.toLowerCase().includes(searchQuery) ||
+                 p.album.toLowerCase().includes(searchQuery);
+        });
+
+        if (matching.length > 0) {
+          filteredTimeline.push({
+            month_year: section.month_year,
+            photos: matching
+          });
+          currentPhotos.push(...matching);
+        }
+      }
+
+      renderTimeline(filteredTimeline);
+    }
+
+    function renderTimeline(timeline) {
+      const container = document.getElementById('timelineContainer');
+      if (timeline.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg class="empty-icon" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <h3>No photos found</h3>
+            <p style="margin-top: 6px; font-size: 0.85rem;">Try another album or search filter</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = timeline.map(group => `
+        <section class="timeline-section">
+          <div class="timeline-header">
+            <h2 class="timeline-month">${group.month_year}</h2>
+            <span class="timeline-meta">${group.photos.length} item${group.photos.length > 1 ? 's' : ''}</span>
+          </div>
+          <div class="photo-grid">
+            ${group.photos.map(p => `
+              <div class="photo-tile" onclick="openLightbox('${p.id}')">
+                <img class="photo-thumb"
+                     src="${API_BASE}/api/photos/thumb?id=${p.id}"
+                     loading="lazy"
+                     alt="${p.name}"
+                     onload="this.classList.add('loaded')">
+                ${p.is_video ? `
+                  <div class="video-badge">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <span>VIDEO</span>
+                  </div>
+                ` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </section>
+      `).join('');
+    }
+
+    // Lightbox Functionality
+    function openLightbox(photoId) {
+      const idx = currentPhotos.findIndex(p => p.id === photoId);
+      if (idx === -1) return;
+      currentIndex = idx;
+      showPhotoAt(currentIndex);
+      document.getElementById('lightbox').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      const lb = document.getElementById('lightbox');
+      lb.classList.remove('active');
+      document.body.style.overflow = '';
+      const v = document.getElementById('lbVideo');
+      v.pause();
+      v.src = '';
+    }
+
+    function showPhotoAt(idx) {
+      if (idx < 0 || idx >= currentPhotos.length) return;
+      currentIndex = idx;
+      const p = currentPhotos[idx];
+
+      document.getElementById('lbFilename').textContent = p.name;
+      document.getElementById('lbCounter').textContent = `${idx + 1} of ${currentPhotos.length}`;
+
+      const img = document.getElementById('lbImg');
+      const vid = document.getElementById('lbVideo');
+
+      if (p.is_video) {
+        img.style.display = 'none';
+        vid.style.display = 'block';
+        vid.src = `${API_BASE}/api/photos/raw?id=${p.id}`;
+        vid.play().catch(() => {});
+      } else {
+        vid.pause();
+        vid.style.display = 'none';
+        img.style.display = 'block';
+        img.src = `${API_BASE}/api/photos/raw?id=${p.id}`;
+      }
+
+      // Update drawer EXIF info
+      document.getElementById('drawerDate').textContent = p.date_str;
+      document.getElementById('drawerTime').textContent = p.time_str;
+      document.getElementById('drawerFile').textContent = p.name;
+      
+      const dimText = (p.width && p.height) ? `${p.width} × ${p.height} • ` : '';
+      document.getElementById('drawerDimSize').textContent = `${dimText}${p.size_mb} MB`;
+      document.getElementById('drawerAlbum').textContent = p.album;
+
+      const camSec = document.getElementById('drawerCameraSection');
+      if (p.exif && (p.exif.model || p.exif.make)) {
+        camSec.style.display = 'block';
+        document.getElementById('drawerCamera').textContent = `${p.exif.make || ''} ${p.exif.model || ''}`.trim();
+        const parts = [];
+        if (p.exif.focal_length) parts.push(p.exif.focal_length);
+        if (p.exif.fnumber) parts.push(p.exif.fnumber);
+        if (p.exif.exposure) parts.push(p.exif.exposure);
+        if (p.exif.iso) parts.push(p.exif.iso);
+        document.getElementById('drawerExifParams').textContent = parts.join(' • ') || 'Standard Lens';
+      } else {
+        camSec.style.display = 'none';
+      }
+    }
+
+    function prevPhoto() {
+      if (currentIndex > 0) {
+        showPhotoAt(currentIndex - 1);
+      } else {
+        showPhotoAt(currentPhotos.length - 1);
+      }
+    }
+
+    function nextPhoto() {
+      if (currentIndex < currentPhotos.length - 1) {
+        showPhotoAt(currentIndex + 1);
+      } else {
+        showPhotoAt(0);
+      }
+    }
+
+    function downloadCurrentPhoto() {
+      const p = currentPhotos[currentIndex];
+      if (!p) return;
+      const url = `${API_BASE}/api/photos/raw?id=${p.id}&download=1`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = p.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function toggleDrawer() {
+      isDrawerOpen = !isDrawerOpen;
+      document.getElementById('lbDrawer').classList.toggle('open', isDrawerOpen);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    async function rescanPhotos() {
+      const btn = event.currentTarget;
+      btn.style.animation = 'spin 0.8s linear infinite';
+      try {
+        const res = await fetch(`${API_BASE}/api/photos/rescan`);
+        if (res.ok) {
+          catalog = await res.json();
+          renderAlbumChips();
+          applyFilter();
+        }
+      } catch (e) {
+        alert('Rescan failed: ' + e.message);
+      } finally {
+        btn.style.animation = '';
+      }
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      const lb = document.getElementById('lightbox');
+      if (!lb.classList.contains('active')) return;
+      if (e.key === 'ArrowLeft') prevPhoto();
+      else if (e.key === 'ArrowRight') nextPhoto();
+      else if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'i' || e.key === 'I') toggleDrawer();
+    });
+
+    // Touch Swipe gestures for mobile
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const stage = document.getElementById('lbStage');
+
+    stage.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    stage.addEventListener('touchend', (e) => {
+      const diffX = e.changedTouches[0].screenX - touchStartX;
+      const diffY = e.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > 0) prevPhoto();
+        else nextPhoto();
+      }
+    }, { passive: true });
+
+    // Initial load
+    loadCatalog();
+  </script>
+</body>
+</html>

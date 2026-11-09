@@ -1,0 +1,2 @@
+KERNEL=="sd[a-z][0-9]*", SUBSYSTEM=="block", ACTION=="add", RUN+="/usr/bin/systemd-run --no-block --property=KillMode=none /usr/local/bin/tx3-usb-mount.sh add %k"
+KERNEL=="sd[a-z][0-9]*", SUBSYSTEM=="block", ACTION=="remove", RUN+="/usr/bin/systemd-run --no-block --property=KillMode=none /usr/local/bin/tx3-usb-mount.sh remove %k"

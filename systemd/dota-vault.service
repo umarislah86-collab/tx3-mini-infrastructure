@@ -1,0 +1,15 @@
+[Unit]
+Description=TX3 Command Center Backend & Photos Vault Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/tx3-vault
+ExecStart=/usr/bin/python3 /opt/tx3-vault/server.py
+Restart=always
+RestartSec=5
+Environment=PORT=3030
+
+[Install]
+WantedBy=multi-user.target

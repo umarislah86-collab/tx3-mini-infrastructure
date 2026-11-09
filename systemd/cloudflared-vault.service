@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel Vault
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/cloudflared tunnel --url http://localhost:3030 --logfile /var/log/cloudflared-vault.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

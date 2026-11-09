@@ -1,0 +1,15 @@
+[Unit]
+Description=PocketBase Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/pocketbase
+ExecStart=/opt/pocketbase/pocketbase serve --http=0.0.0.0:8090 --dir=/opt/pocketbase/pb_data
+Restart=always
+RestartSec=3
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

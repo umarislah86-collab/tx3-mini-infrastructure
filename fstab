@@ -1,0 +1,9 @@
+UUID=84dddb92-a52d-4b41-add1-db2ecdc7bd14    /        ext4    defaults,noatime,nodiratime,commit=600,errors=remount-ro      0 1
+LABEL=BOOT_EMMC        /boot    vfat                   defaults                   0 2
+tmpfs                  /tmp     tmpfs                  defaults,nosuid            0 0
+
+UUID=60B1-1534 /mnt/vault exfat defaults,nofail,uid=1000,gid=1000,umask=000 0 0
+/mnt/vault /shares/Pendrive-128GB none bind,nofail 0 0
+UUID=FBFC-D15C /shares/SD-Card-64GB exfat defaults,nofail,uid=1000,gid=1000,umask=000 0 0
+UUID=A29E14DE9E14ACB3 /shares/3TB-ext ntfs-3g defaults,nofail,rw,uid=1000,gid=1000,umask=000,big_writes 0 0
+UUID=449243E99243DE54 /shares/500GB-ext ntfs-3g defaults,nofail,rw,uid=1000,gid=1000,umask=000,big_writes 0 0

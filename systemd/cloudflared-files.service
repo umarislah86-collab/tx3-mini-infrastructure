@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel Files
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/cloudflared tunnel --url http://localhost:8080 --logfile /var/log/cloudflared-files.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

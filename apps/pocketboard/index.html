@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TX3 PocketBoard • Realtime Database</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <div>
+          <div class="brand-title-wrap">
+            <h1 class="brand-title">TX3 PocketBoard</h1>
+            <span class="version-tag">PocketBase Live</span>
+          </div>
+          <div class="status-indicator-wrap" id="sseStatusWrap">
+            <span class="status-dot dot-connecting" id="sseDot"></span>
+            <span class="status-text" id="sseText">Connecting to PocketBase...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Auth Profile Pill -->
+        <button class="user-pill-btn" id="userPillBtn" onclick="openAuthModal()">
+          <span class="user-avatar-icon" id="userAvatarIcon">👤</span>
+          <span class="user-name" id="userDisplayName">Guest Mode</span>
+        </button>
+
+        <!-- Admin Console Link -->
+        <a href="/_/" target="_blank" class="icon-link-btn" title="Open PocketBase Admin Dashboard">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/></svg>
+          <span class="desktop-only">Admin UI</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Realtime Flash Event Toast -->
+  <div class="realtime-toast" id="realtimeToast">
+    <span class="toast-icon">⚡</span>
+    <span class="toast-msg" id="toastMsg">Connected to realtime events</span>
+  </div>
+
+  <main class="main-container">
+
+    <!-- Composer Section -->
+    <section class="composer-card">
+      <div class="composer-header">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" class="inline-icon"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          Create Realtime Note
+        </h2>
+        <span class="shortcut-hint desktop-only">Ctrl + Enter to post</span>
+      </div>
+
+      <form id="noteForm" onsubmit="handleCreateNote(event)">
+        <div class="form-row">
+          <input type="text" class="input-title" id="noteTitle" placeholder="Title (e.g. Belian Pasar, Idea Projek, Meeting Notes)" required autocomplete="off">
+        </div>
+
+        <div class="form-row">
+          <textarea class="input-content" id="noteContent" rows="3" placeholder="Write your note, task checklist or thoughts here..."></textarea>
+        </div>
+
+        <!-- Attachment Preview Bar -->
+        <div class="attachment-preview-box" id="attachmentPreviewBox" style="display: none;">
+          <div class="preview-info">
+            <span class="preview-icon" id="previewIcon">📎</span>
+            <span class="preview-filename" id="previewFilename">file.jpg</span>
+            <span class="preview-size" id="previewSize">(0 KB)</span>
+          </div>
+          <button type="button" class="btn-remove-attach" onclick="clearAttachment()" title="Remove file">✕</button>
+        </div>
+
+        <!-- Composer Footer Controls -->
+        <div class="composer-controls">
+          <div class="controls-left">
+            <!-- Category Selector -->
+            <select class="select-category" id="noteCategory">
+              <option value="General">📝 General</option>
+              <option value="Ideas">💡 Ideas</option>
+              <option value="Work">💼 Work</option>
+              <option value="Personal">👤 Personal</option>
+              <option value="Todo">🎯 Todo</option>
+            </select>
+
+            <!-- Color Palette Picker -->
+            <div class="color-palette">
+              <label class="color-dot color-slate active" title="Default">
+                <input type="radio" name="noteColor" value="slate" checked>
+              </label>
+              <label class="color-dot color-blue" title="Blue">
+                <input type="radio" name="noteColor" value="blue">
+              </label>
+              <label class="color-dot color-emerald" title="Emerald">
+                <input type="radio" name="noteColor" value="emerald">
+              </label>
+              <label class="color-dot color-purple" title="Purple">
+                <input type="radio" name="noteColor" value="purple">
+              </label>
+              <label class="color-dot color-amber" title="Amber">
+                <input type="radio" name="noteColor" value="amber">
+              </label>
+              <label class="color-dot color-rose" title="Rose">
+                <input type="radio" name="noteColor" value="rose">
+              </label>
+            </div>
+
+            <!-- Attach File Button -->
+            <label class="btn-attach" title="Attach image or file">
+              <input type="file" id="noteFile" onchange="handleFileSelected(event)" style="display: none;" accept="image/*,application/pdf">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a3 3 0 0 0 6 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+              <span>Attach</span>
+            </label>
+
+            <!-- Pin Toggle -->
+            <label class="pin-toggle" title="Pin note to top">
+              <input type="checkbox" id="notePinned">
+              <span class="pin-icon">📌</span>
+              <span class="pin-label desktop-only">Pin</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn-submit" id="btnSubmit">
+            <svg viewBox="0 0 24 24" class="btn-send-icon"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <span>Post to TX3</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Filter & Search Toolbar -->
+    <section class="toolbar-section">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" class="search-icon"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="searchInput" placeholder="Search notes in realtime..." oninput="handleSearch(this.value)">
+      </div>
+
+      <div class="filter-chips" id="filterChips">
+        <button class="filter-chip active" onclick="setCategoryFilter('All')">All (<span id="countAll">0</span>)</button>
+        <button class="filter-chip" onclick="setCategoryFilter('General')">📝 General</button>
+        <button class="filter-chip" onclick="setCategoryFilter('Ideas')">💡 Ideas</button>
+        <button class="filter-chip" onclick="setCategoryFilter('Work')">💼 Work</button>
+        <button class="filter-chip" onclick="setCategoryFilter('Personal')">👤 Personal</button>
+        <button class="filter-chip" onclick="setCategoryFilter('Todo')">🎯 Todo</button>
+      </div>
+    </section>
+
+    <!-- Notes Grid Stream -->
+    <section class="notes-grid" id="notesGrid">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Connecting to PocketBase on TX3 Mini...</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Auth Modal (Login / Register) -->
+  <div class="modal-backdrop" id="authModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 class="modal-title" id="authModalTitle">PocketBase Account</h3>
+        <button class="btn-close" onclick="closeAuthModal()">✕</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tabLogin" onclick="switchAuthMode('login')">Login</button>
+        <button class="modal-tab" id="tabRegister" onclick="switchAuthMode('register')">Create Account</button>
+      </div>
+
+      <form class="auth-form" id="authForm" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group" id="groupName" style="display: none;">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" id="authName" placeholder="Umar Rosli">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="authEmail" placeholder="umar@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" id="authPassword" placeholder="Minimum 8 characters" required minlength="8">
+        </div>
+
+        <div class="form-group" id="groupPasswordConfirm" style="display: none;">
+          <label class="form-label">Confirm Password</label>
+          <input type="password" class="form-input" id="authPasswordConfirm" placeholder="Repeat password">
+        </div>
+
+        <div class="auth-msg-box" id="authMsgBox" style="display: none;"></div>
+
+        <button type="submit" class="btn-primary-block" id="btnAuthSubmit">Sign In</button>
+      </form>
+
+      <div class="user-active-card" id="userActiveCard" style="display: none;">
+        <div class="user-meta-row">
+          <div class="user-avatar-lg">👤</div>
+          <div>
+            <div class="user-meta-name" id="profileName">--</div>
+            <div class="user-meta-email" id="profileEmail">--</div>
+          </div>
+        </div>
+        <button class="btn-secondary-block" onclick="handleLogout()">Log Out of PocketBase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal for Attachment Images -->
+  <div class="lightbox-backdrop" id="imageLightbox" onclick="closeLightbox()">
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+    <img id="lbImage" src="" alt="Full view" onclick="event.stopPropagation()">
+  </div>
+
+  <!-- PocketBase JavaScript SDK (Local offline copy) -->
+  <script src="pocketbase.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TX3 Command Center</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top App Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-avatar">
+        <svg viewBox="0 0 24 24" class="icon-server"><path fill="currentColor" d="M4 1h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2zm0 8h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zm0 8h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zm2-14v2h2V3H6zm0 8v2h2v-2H6zm0 8v2h2v-2H6zm12-16v2h2V3h-2zm0 8v2h2v-2h-2zm0 8v2h2v-2h-2z"/></svg>
+      </div>
+      <div>
+        <h1 class="brand-title">TX3 Command Center</h1>
+        <div class="network-badge" id="netBadge" onclick="showSettings()">
+          <span class="badge-dot" id="badgeDot"></span>
+          <span id="netRouteText">Probing...</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" onclick="refreshDashboard()" title="Refresh">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showSettings()" title="Settings">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Top Navigation Tabs (4 Core Pillars) -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" id="tabPower" onclick="switchTab('power')">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path fill="currentColor" d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7A6.995 6.995 0 0 1 5 12c0-2.09.91-3.97 2.37-5.26L5.95 5.32A8.932 8.932 0 0 0 3 12a9 9 0 0 0 9 9 9 9 0 0 0 9-9c0-2.61-1.11-4.96-2.83-6.67z"/></svg>
+      <span>Power</span>
+    </button>
+    <button class="nav-tab" id="tabDrive" onclick="switchTab('drive')">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path fill="currentColor" d="M19 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1c0-2 4-3.1 6-3.1s6 1.1 6 3.1v1z"/></svg>
+      <span>Drive</span>
+    </button>
+    <button class="nav-tab" id="tabPhotos" onclick="switchTab('photos')">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+      <span>Photos</span>
+    </button>
+    <button class="nav-tab" id="tabDota" onclick="switchTab('dota')">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path fill="currentColor" d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+      <span>Dota 2</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+
+    <!-- ================= TAB 1: POWER & SERVER TELEMETRY ================= -->
+    <div class="tab-pane active" id="panePower">
+      
+      <!-- Workstation PC Power Control Card -->
+      <section class="card pc-card">
+        <div class="card-header">
+          <div class="device-info">
+            <div class="device-icon" id="pcIcon">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>
+            </div>
+            <div>
+              <div class="card-subtitle">WORKSTATION RIG</div>
+              <h2 class="device-name">DESKTOP-S700VJ0</h2>
+            </div>
+          </div>
+          <div class="status-pill" id="pcStatusPill">
+            <span class="status-indicator" id="pcIndicator"></span>
+            <span id="pcStatusText">Checking...</span>
+          </div>
+        </div>
+
+        <div class="pc-meta">
+          <div class="meta-item">
+            <span class="meta-label">Agent Heartbeat</span>
+            <span class="meta-val" id="pcHeartbeat">--</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Safe Shutdown</span>
+            <span class="meta-val text-success">Armed & Ready</span>
+          </div>
+        </div>
+
+        <!-- Power Command Actions -->
+        <div class="action-grid">
+          <button class="btn btn-wake" id="btnWake" onclick="sendPowerAction('wake')">
+            <svg viewBox="0 0 24 24" class="btn-icon"><path fill="currentColor" d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+            <span>Turn ON (WOL)</span>
+          </button>
+          <button class="btn btn-shutdown" id="btnShutdown" onclick="confirmShutdown()">
+            <svg viewBox="0 0 24 24" class="btn-icon"><path fill="currentColor" d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7A6.995 6.995 0 0 1 5 12c0-2.09.91-3.97 2.37-5.26L5.95 5.32A8.932 8.932 0 0 0 3 12a9 9 0 0 0 9-9c0-2.61-1.11-4.96-2.83-6.67z"/></svg>
+            <span>Turn OFF</span>
+          </button>
+        </div>
+
+        <div class="action-secondary">
+          <button class="btn-subtle" onclick="sendPowerAction('sleep')">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12.3 2a10 10 0 0 0-1.9 20 10 10 0 0 0 8.5-4.8 1 1 0 0 0-.9-1.5 8 8 0 0 1-5.7-13.7 1 1 0 0 0 0-1.6z"/></svg>
+            <span>Sleep PC</span>
+          </button>
+          <button class="btn-subtle" onclick="testPcStatus()">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            <span>Ping Agent</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- TX3 Mini Home Server Realtime Telemetry Card -->
+      <section class="card server-telemetry-card">
+        <div class="card-header">
+          <div class="device-info">
+            <div class="device-icon tx3-icon">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16v12H4z M2 4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4zm4 4v2h2V8H6zm0 4v2h2v-2H6z"/></svg>
+            </div>
+            <div>
+              <div class="card-subtitle" id="tx3SocModel">AML S905W • 4x CORTEX-A53</div>
+              <h2 class="device-name">TX3 Mini Server</h2>
+            </div>
+          </div>
+          <div class="status-pill pill-online" id="tx3StatusPill">
+            <span class="status-indicator"></span>
+            <span id="tx3Uptime">Up: --</span>
+          </div>
+        </div>
+
+        <!-- Realtime Telemetry Metrics Grid -->
+        <div class="telemetry-grid">
+          <!-- Temp -->
+          <div class="tele-tile">
+            <div class="tele-label">
+              <svg viewBox="0 0 24 24" class="tele-icon text-amber"><path fill="currentColor" d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4zm-4-8c0-.55.45-1 1-1s1 .45 1 1h-1v1h1v2h-1v1h1v2h-2V5z"/></svg>
+              <span>Temperature</span>
+            </div>
+            <div class="tele-val-group">
+              <span class="tele-val" id="teleTemp">--°C</span>
+              <span class="tele-badge badge-temp" id="teleTempBadge">--</span>
+            </div>
+          </div>
+
+          <!-- CPU Load -->
+          <div class="tele-tile">
+            <div class="tele-label">
+              <svg viewBox="0 0 24 24" class="tele-icon text-blue"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+              <span>CPU Usage</span>
+            </div>
+            <div class="tele-val-group">
+              <span class="tele-val" id="teleCpuPct">--%</span>
+              <span class="tele-sub" id="teleLoadAvg">Load: --</span>
+            </div>
+          </div>
+
+          <!-- RAM Telemetry -->
+          <div class="tele-tile">
+            <div class="tele-label">
+              <svg viewBox="0 0 24 24" class="tele-icon text-green"><path fill="currentColor" d="M2 7h20v10H2V7zm2 2v6h16V9H4zm2 1h2v4H6v-4zm4 0h2v4h-2v-4zm4 0h2v4h-2v-4z"/></svg>
+              <span>RAM (Memory)</span>
+            </div>
+            <div class="tele-val-group">
+              <span class="tele-val" id="teleRamVal">-- MB</span>
+              <span class="tele-sub" id="teleRamAvail">-- Free</span>
+            </div>
+            <div class="tele-progress">
+              <div class="tele-fill fill-green" id="teleRamBar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Services Status -->
+          <div class="tele-tile">
+            <div class="tele-label">
+              <svg viewBox="0 0 24 24" class="tele-icon text-purple"><path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              <span>Daemons Active</span>
+            </div>
+            <div class="tele-val-group">
+              <span class="tele-val text-success" id="teleServiceCount">5 / 5 Active</span>
+              <span class="tele-sub">Jellyfin • PB • Photos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Storage Breakdown -->
+        <div class="storage-list">
+          <div class="storage-item">
+            <div class="storage-label-row">
+              <span class="storage-name" id="teleVaultLabel">Vault Drive (Pendrive / 3TB HDD)</span>
+              <span class="storage-cap" id="teleVaultCap">-- Free / --</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill fill-blue" id="teleVaultBar" style="width: 10%;"></div>
+            </div>
+          </div>
+          <div class="storage-item">
+            <div class="storage-label-row">
+              <span class="storage-name" id="teleRootLabel">MicroSD (Armbian OS)</span>
+              <span class="storage-cap" id="teleRootCap">-- Free / --</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill fill-green" id="teleRootBar" style="width: 10%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Access Cloud Links -->
+        <div class="quick-apps-grid">
+          <a class="app-chip-compact" href="javascript:void(0)" onclick="launchAppUrl('files')">
+            <svg viewBox="0 0 24 24" class="app-chip-icon"><path fill="currentColor" d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+            <span>FileBrowser</span>
+          </a>
+          <a class="app-chip-compact" href="javascript:void(0)" onclick="launchAppUrl('pocketbase')">
+            <svg viewBox="0 0 24 24" class="app-chip-icon text-amber"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <span>PocketBase</span>
+          </a>
+          <a class="app-chip-compact" href="javascript:void(0)" onclick="launchAppUrl('photos')">
+            <svg viewBox="0 0 24 24" class="app-chip-icon text-red"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <span>Photos Web</span>
+          </a>
+          <a class="app-chip-compact" href="javascript:void(0)" onclick="launchAppUrl('jellyfin')">
+            <svg viewBox="0 0 24 24" class="app-chip-icon text-purple"><path fill="currentColor" d="M12 2L2 19.5h20L12 2zm0 3.84l7.19 12.66H4.81L12 5.84z"/></svg>
+            <span>Jellyfin TV</span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= TAB 2: GOOGLE DRIVE FILE EXPLORER ================= -->
+    <div class="tab-pane" id="paneDrive">
+      <!-- Drive Header & Search Bar -->
+      <section class="card drive-header-card">
+        <div class="drive-search-bar">
+          <svg viewBox="0 0 24 24" class="drive-search-icon"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" class="drive-search-input" id="driveSearchInput" placeholder="Search in Drive..." oninput="handleDriveSearch(this.value)">
+          
+          <button class="drive-action-btn" id="btnDriveView" onclick="toggleDriveView()" title="Toggle View">
+            <svg viewBox="0 0 24 24" id="driveViewIcon"><path fill="currentColor" d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>
+          </button>
+          
+          <button class="drive-action-btn" onclick="toggleDriveSort()" title="Sort Files">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+          </button>
+        </div>
+
+        <!-- Storage Selector Chips Bar -->
+        <div class="storage-selector-bar" id="driveStorageChips">
+          <!-- Dynamically populated chips -->
+        </div>
+
+        <!-- Breadcrumbs Navigation -->
+        <div class="drive-breadcrumbs" id="driveBreadcrumbs">
+          <span class="crumb active">📁 Vault</span>
+        </div>
+      </section>
+
+      <!-- Main Files & Folders Container -->
+      <div id="driveContentArea">
+        <div class="empty-state">
+          <div class="spinner"></div>
+          <p>Loading files from TX3 Mini...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 3: PHOTOS VAULT ================= -->
+    <div class="tab-pane" id="panePhotos">
+      <!-- Search & Album Bar -->
+      <section class="card photos-header-card">
+        <div class="photos-search-wrap">
+          <svg viewBox="0 0 24 24" class="photos-search-icon"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" class="photos-search-input" id="appPhotoSearch" placeholder="Search memories, dates, albums..." oninput="handlePhotoSearch(this.value)">
+          <button class="btn-rescan-photos" onclick="rescanPhotoCatalog()" title="Rescan Library">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          </button>
+        </div>
+        <div class="photos-album-chips" id="appAlbumChips">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Photos Timeline Stream -->
+      <div id="appPhotoStream">
+        <div class="empty-state">
+          <div class="spinner"></div>
+          <p>Loading photo memories from TX3 Mini...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 4: DOTA 2 VAULT ================= -->
+    <div class="tab-pane" id="paneDota">
+      
+      <!-- Dota 2 Vault Overview & Launch Banner -->
+      <section class="card dota-banner-card">
+        <div class="dota-banner-header">
+          <div>
+            <div class="card-subtitle">ARCHIVE ENGINE • S905W</div>
+            <h2 class="device-name">Dota 2 Match Vault</h2>
+          </div>
+          <span class="badge-count" id="dotaBadgeCount">0 Matches</span>
+        </div>
+
+        <!-- 3 Key Vault Stats -->
+        <div class="dota-stats-row">
+          <div class="dota-stat-box">
+            <span class="dota-stat-label">Total Matches</span>
+            <span class="dota-stat-val" id="dotaStatMatches">--</span>
+          </div>
+          <div class="dota-stat-box">
+            <span class="dota-stat-label">Recorded Clips</span>
+            <span class="dota-stat-val" id="dotaStatClips">--</span>
+          </div>
+          <div class="dota-stat-box">
+            <span class="dota-stat-label">Archive Size</span>
+            <span class="dota-stat-val" id="dotaStatSize">-- GB</span>
+          </div>
+        </div>
+
+        <!-- Prominent Launch Full Web Vault Button -->
+        <button class="btn btn-launch-vault" onclick="launchDotaWeb()">
+          <svg viewBox="0 0 24 24" class="btn-icon"><path fill="currentColor" d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+          <span>Launch Full Web Vault (vault.umiaq.top)</span>
+        </button>
+        <p class="dota-banner-tip">Buka pelayar web penuh untuk senarai lengkap 1,400+ folder perlawanan, penapis hero, dan nota match.</p>
+      </section>
+
+      <!-- Recent Matches Section with Search -->
+      <section class="card">
+        <div class="card-header">
+          <h3 class="card-title-sm">Recent Matches</h3>
+          <span class="meta-val" id="dotaLatestDate">Latest: --</span>
+        </div>
+
+        <div class="dota-search-box">
+          <svg viewBox="0 0 24 24" class="dota-search-icon"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" class="dota-search-input" id="dotaSearchInput" placeholder="Filter matches by date or name..." oninput="handleDotaSearch(this.value)">
+        </div>
+
+        <div class="vault-scroll" id="vaultList">
+          <div class="empty-state">
+            <div class="spinner"></div>
+            <p>Loading match archives from TX3 Mini...</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Google Drive Floating Action Button (FAB) -->
+  <button class="drive-fab" id="driveFab" onclick="openFabSheet()" title="New / Upload">
+    <svg viewBox="0 0 24 24" class="drive-fab-icon"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  </button>
+
+  <!-- Drive FAB Bottom Sheet Modal -->
+  <div class="modal-backdrop" id="fabSheetModal" onclick="closeFabSheet(event)">
+    <div class="fab-sheet" onclick="event.stopPropagation()">
+      <div class="fab-sheet-header">
+        <h4>Create / Add to Drive</h4>
+        <button class="sheet-close-btn" onclick="closeFabSheet()">✕</button>
+      </div>
+      <div class="fab-sheet-grid">
+        <button class="fab-sheet-tile" onclick="triggerNewFolder()">
+          <div class="fab-tile-icon icon-blue">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>
+          </div>
+          <span>New folder</span>
+        </button>
+
+        <button class="fab-sheet-tile" onclick="triggerFileUpload()">
+          <div class="fab-tile-icon icon-green">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+          </div>
+          <span>Upload files</span>
+        </button>
+
+        <button class="fab-sheet-tile" onclick="triggerMediaUpload()">
+          <div class="fab-tile-icon icon-red">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          </div>
+          <span>Photos & Video</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drive File/Folder 3-Dots Action Sheet -->
+  <div class="modal-backdrop" id="driveItemSheetModal" onclick="closeItemSheet(event)">
+    <div class="item-sheet" onclick="event.stopPropagation()">
+      <div class="item-sheet-header">
+        <div class="item-sheet-icon" id="itemSheetIcon">📁</div>
+        <div class="item-sheet-meta">
+          <div class="item-sheet-title" id="itemSheetTitle">Filename.ext</div>
+          <div class="item-sheet-sub" id="itemSheetSub">12.5 MB • Nov 8, 2026</div>
+        </div>
+        <button class="sheet-close-btn" onclick="closeItemSheet()">✕</button>
+      </div>
+
+      <div class="item-sheet-actions">
+        <button class="sheet-action-row" id="btnSheetDownload" onclick="executeItemDownload()">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          <span>Download to phone</span>
+        </button>
+
+        <button class="sheet-action-row" onclick="executeItemRename()">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          <span>Rename</span>
+        </button>
+
+        <button class="sheet-action-row" onclick="executeItemDetails()">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+          <span>Details & Info</span>
+        </button>
+
+        <button class="sheet-action-row text-danger" onclick="executeItemDelete()">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          <span>Delete</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Live Progress Toast/Overlay -->
+  <div class="upload-progress-card" id="uploadProgressCard">
+    <div class="upload-card-header">
+      <span class="upload-card-title" id="uploadFilename">Uploading file...</span>
+      <span class="upload-card-pct" id="uploadPct">0%</span>
+    </div>
+    <div class="upload-progress-track">
+      <div class="upload-progress-fill" id="uploadBar" style="width: 0%;"></div>
+    </div>
+    <div class="upload-card-status" id="uploadStatusText">Starting upload to TX3 Mini...</div>
+  </div>
+
+  <!-- Hidden Native File Pickers -->
+  <input type="file" id="driveFileInput" multiple style="display:none;" onchange="handleNativeUpload(this.files)">
+  <input type="file" id="driveMediaInput" accept="image/*,video/*" multiple style="display:none;" onchange="handleNativeUpload(this.files)">
+
+  <!-- Photo Lightbox Modal -->
+  <div class="lightbox-modal" id="photoLightbox">
+    <div class="lightbox-topbar">
+      <button class="lb-icon-btn" onclick="closePhotoLightbox()">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      </button>
+      <div class="lb-title-box">
+        <span class="lb-title" id="lbTitle">Photo</span>
+        <span class="lb-counter" id="lbCounter">1 / 100</span>
+      </div>
+      <div class="lb-actions">
+        <button class="lb-icon-btn" onclick="downloadCurrentPhoto()" title="Download">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        </button>
+        <button class="lb-icon-btn" onclick="togglePhotoExif()" title="Details">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="lightbox-stage" id="lbStage">
+      <button class="lb-nav-btn prev" onclick="prevPhoto()">❮</button>
+      <img id="lbImg" src="" alt="Full view" style="display:none;">
+      <video id="lbVideo" controls playsinline autoplay style="display:none;"></video>
+      <button class="lb-nav-btn next" onclick="nextPhoto()">❯</button>
+    </div>
+
+    <!-- EXIF Drawer Sheet -->
+    <div class="exif-drawer" id="exifDrawer">
+      <div class="exif-drawer-header">
+        <h4>Photo Details</h4>
+        <button class="lb-icon-btn-sm" onclick="togglePhotoExif()">✕</button>
+      </div>
+      <div class="exif-drawer-content" id="exifDrawerContent">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Player Modal for Dota 2 & Drive Videos -->
+  <div class="modal-backdrop" id="videoModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 class="modal-title" id="modalVideoTitle">Clip Player</h3>
+          <span class="modal-subtitle" id="modalVideoSubtitle">Match Stream</span>
+        </div>
+        <button class="btn-close" onclick="closeVideoModal()">✕</button>
+      </div>
+      <div class="modal-player-container">
+        <video id="videoPlayer" controls playsinline preload="metadata">
+          Your device does not support HTML5 video streaming.
+        </video>
+      </div>
+      <div class="modal-clip-list" id="modalClipList">
+        <!-- Clips list inside match session -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Shutdown Confirmation Dialog -->
+  <div class="modal-backdrop" id="shutdownModal">
+    <div class="dialog-box">
+      <div class="dialog-icon-wrap">
+        <svg viewBox="0 0 24 24" class="dialog-warn-icon"><path fill="currentColor" d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+      </div>
+      <h3 class="dialog-title">Shut Down DESKTOP-S700VJ0?</h3>
+      <p class="dialog-desc">This sends a safe shutdown command to your workstation. Open documents and apps will gracefully close.</p>
+      <div class="dialog-actions">
+        <button class="btn btn-secondary" onclick="closeShutdownModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="executeShutdown()">Confirm Shutdown</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 class="modal-title">Connection Settings</h3>
+        <button class="btn-close" onclick="closeSettingsModal()">✕</button>
+      </div>
+      <div class="settings-content">
+        <div class="form-group">
+          <label class="form-label">Active Route Mode</label>
+          <div class="segmented-control">
+            <button class="seg-btn active" id="segAuto" onclick="setRouteMode('auto')">Auto-Detect</button>
+            <button class="seg-btn" id="segLan" onclick="setRouteMode('lan')">LAN Direct</button>
+            <button class="seg-btn" id="segCloud" onclick="setRouteMode('cloudflare')">Cloudflare</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">TX3 LAN Base URL</label>
+          <input type="text" class="form-input" id="cfgLanUrl" value="http://192.168.100.232:3030">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cloudflare Tunnel URL</label>
+          <input type="text" class="form-input" id="cfgCloudUrl" value="https://vault.umiaq.top">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">FileBrowser Web URL</label>
+          <input type="text" class="form-input" id="cfgFbUrl" value="https://files.umiaq.top">
+        </div>
+
+        <button class="btn btn-primary btn-block" onclick="saveSettings()">Save & Re-test Connection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incoming Quick Share Modal -->
+  <div class="modal-backdrop" id="incomingShareModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 class="modal-title">⚡ Quick Share to TX3</h3>
+          <span class="modal-subtitle" id="incomingShareCount">Receiving files...</span>
+        </div>
+        <button class="btn-close" onclick="closeShareModal()">✕</button>
+      </div>
+      <div class="settings-content" style="padding-bottom: 24px;">
+        <!-- Target Storage Selector -->
+        <div class="form-group">
+          <label class="form-label">Destination Storage</label>
+          <div class="share-storage-chips" id="shareStorageChips">
+            <!-- Injected dynamically: Pendrive-128GB, SD-Card-64GB -->
+          </div>
+        </div>
+
+        <!-- Target Subfolder -->
+        <div class="form-group">
+          <label class="form-label">Destination Folder</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" class="form-input" id="shareFolderPath" value="/" placeholder="/" style="flex:1;">
+            <button class="btn-subtle" onclick="useCurrentDriveFolder()" title="Use active folder" style="padding: 0 12px; font-size:12px; white-space:nowrap;">Active Tab</button>
+          </div>
+        </div>
+
+        <!-- File List Preview -->
+        <div class="form-group">
+          <label class="form-label">Files Selected (<span id="shareTotalSize">0 B</span>)</label>
+          <div class="share-file-list" id="shareFileList">
+            <!-- Injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Live Upload Progress Card (hidden until upload begins) -->
+        <div class="share-progress-card" id="shareProgressCard" style="display:none; margin-top:12px; padding:12px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span class="share-progress-title" id="shareProgressTitle" style="font-size:13px; font-weight:600; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:75%;">Starting...</span>
+            <span class="share-progress-pct" id="shareProgressPct" style="font-size:12px; font-weight:700; color:var(--primary);">0%</span>
+          </div>
+          <div style="width:100%; height:6px; background:#e0e0e0; border-radius:3px; overflow:hidden;">
+            <div id="shareProgressBar" style="width:0%; height:100%; background:var(--primary); transition:width 0.15s ease;"></div>
+          </div>
+          <div class="share-progress-meta" id="shareProgressMeta" style="font-size:11px; color:var(--text-muted); margin-top:4px;">Connecting...</div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn btn-secondary" id="btnCancelShare" onclick="closeShareModal()" style="flex:1;">Cancel</button>
+          <button class="btn btn-primary" id="btnUploadShare" onclick="startShareUpload()" style="flex:1.5;">
+            <svg viewBox="0 0 24 24" style="width:18px;height:18px;margin-right:6px;"><path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+            <span>Upload Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
