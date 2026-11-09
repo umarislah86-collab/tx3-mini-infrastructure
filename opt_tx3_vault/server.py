@@ -49,25 +49,26 @@ PORT = int(os.environ.get('PORT', 3030))
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def get_dota_dir():
+def get_dota_dirs():
     candidates = [
+        '/shares/3TB-ext/Vids/Dota 2',
         '/shares/500GB-ext/Dota2 overwolf',
         '/shares/3TB-ext/Outplayed/Dota 2',
-        '/shares/Pendrive-128GB/Dota 2',
-        os.path.join(BASE_DIR, 'Dota 2'),
-        BASE_DIR
+        '/shares/Pendrive-128GB/Dota 2'
     ]
-    for c in candidates:
-        if os.path.exists(c) and os.path.isdir(c):
-            return c
-    return BASE_DIR
+    return [c for c in candidates if os.path.exists(c) and os.path.isdir(c)]
 
-DOTA_DIR = get_dota_dir()
+def get_primary_dota_dir():
+    dirs = get_dota_dirs()
+    return dirs[0] if dirs else '/shares/3TB-ext/Vids/Dota 2'
 
-NOTES_FILE = os.path.join(BASE_DIR, '_notes.json')
-CACHE_FILE = os.path.join(BASE_DIR, '_sessions_cache.json')
-SETTINGS_FILE = os.path.join(BASE_DIR, '_settings.json')
-THUMB_DIR = os.path.join(BASE_DIR, '_thumbnails')
+DOTA_DIR = get_primary_dota_dir()
+
+# Look for cache, notes, thumbnails directly in primary Dota dir first, or fallback to BASE_DIR
+NOTES_FILE = os.path.join(DOTA_DIR, '_notes.json') if os.path.exists(os.path.join(DOTA_DIR, '_notes.json')) else os.path.join(BASE_DIR, '_notes.json')
+CACHE_FILE = os.path.join(DOTA_DIR, '_sessions_cache.json') if os.path.exists(os.path.join(DOTA_DIR, '_sessions_cache.json')) else os.path.join(BASE_DIR, '_sessions_cache.json')
+SETTINGS_FILE = os.path.join(DOTA_DIR, '_settings.json') if os.path.exists(os.path.join(DOTA_DIR, '_settings.json')) else os.path.join(BASE_DIR, '_settings.json')
+THUMB_DIR = os.path.join(DOTA_DIR, '_thumbnails') if os.path.exists(os.path.join(DOTA_DIR, '_thumbnails')) else os.path.join(BASE_DIR, '_thumbnails')
 DIST_DIR = os.path.join(BASE_DIR, 'dist')
 
 # Photos Vault Paths
@@ -513,27 +514,41 @@ def get_sessions():
             pass
 
     updated = False
-    current_folders = set()
-    if os.path.exists(DOTA_DIR):
-        for name in os.listdir(DOTA_DIR):
-            if name.startswith('_') or name.startswith('.'):
-                continue
-            fp = os.path.join(DOTA_DIR, name)
-            if os.path.isdir(fp):
-                current_folders.add(name)
-                if name not in cached:
-                    print(f"Auto-detected new Dota 2 session: {name}")
-                    cached[name] = parse_session_folder(name, fp)
-                    updated = True
+    current_folders = {}
+    for d_dir in get_dota_dirs():
+        try:
+            for name in os.listdir(d_dir):
+                if not name.startswith('Dota 2'):
+                    continue
+                fp = os.path.join(d_dir, name)
+                if os.path.isdir(fp):
+                    if name not in current_folders:
+                        current_folders[name] = fp
+                    if name not in cached:
+                        print(f"Auto-detected new Dota 2 session: {name} in {d_dir}")
+                        cached[name] = parse_session_folder(name, fp)
+                        updated = True
+        except Exception:
+            pass
 
     result = []
     for name, s in list(cached.items()):
+        if not name.startswith('Dota 2'):
+            continue
         if name in current_folders:
-            s['folder_path'] = os.path.join(DOTA_DIR, name)
-            s['thumbnail_path'] = os.path.join(THUMB_DIR, f"{name}.jpg")
+            fp = current_folders[name]
+            s['folder_path'] = fp
+            # Determine thumbnail
+            thumb = os.path.join(THUMB_DIR, f"{name}.jpg")
+            if not os.path.exists(thumb):
+                alt_thumb = os.path.join(os.path.dirname(fp), '_thumbnails', f"{name}.jpg")
+                if os.path.exists(alt_thumb):
+                    thumb = alt_thumb
+            s['thumbnail_path'] = thumb
             result.append(s)
         else:
-            updated = True
+            # Still keep cached sessions if not actively missing
+            result.append(s)
 
     if updated:
         try:
@@ -1147,9 +1162,11 @@ class VaultHandler(BaseHTTPRequestHandler):
             folder = params.get('folder', [''])[0]
             if not os.path.exists(folder):
                 folder_name = os.path.basename(folder.replace('\\', '/').rstrip('/'))
-                cand = os.path.join(DOTA_DIR, folder_name)
-                if os.path.exists(cand):
-                    folder = cand
+                for d_dir in get_dota_dirs():
+                    cand = os.path.join(d_dir, folder_name)
+                    if os.path.exists(cand):
+                        folder = cand
+                        break
 
             clips = []
             if os.path.exists(folder) and os.path.isdir(folder):
@@ -1171,7 +1188,15 @@ class VaultHandler(BaseHTTPRequestHandler):
         if pathname == '/api/thumbnail':
             name = params.get('name', [''])[0]
             clean_name = os.path.splitext(os.path.basename(name))[0]
-            thumb_path = os.path.join(THUMB_DIR, f"{clean_name}.jpg")
+            thumb_path = None
+            for d_dir in get_dota_dirs():
+                cand = os.path.join(d_dir, '_thumbnails', f"{clean_name}.jpg")
+                if os.path.exists(cand):
+                    thumb_path = cand
+                    break
+            if not thumb_path or not os.path.exists(thumb_path):
+                thumb_path = os.path.join(THUMB_DIR, f"{clean_name}.jpg")
+
             if os.path.exists(thumb_path):
                 self.send_response(200)
                 self.send_header('Content-Type', 'image/jpeg')
@@ -1192,9 +1217,11 @@ class VaultHandler(BaseHTTPRequestHandler):
             if not os.path.exists(video_path):
                 base_name = os.path.basename(video_path.replace('\\', '/'))
                 parent_name = os.path.basename(os.path.dirname(video_path.replace('\\', '/')))
-                cand = os.path.join(DOTA_DIR, parent_name, base_name)
-                if os.path.exists(cand):
-                    video_path = cand
+                for d_dir in get_dota_dirs():
+                    cand = os.path.join(d_dir, parent_name, base_name)
+                    if os.path.exists(cand):
+                        video_path = cand
+                        break
 
             if not os.path.exists(video_path):
                 self.send_response(404)
