@@ -57,7 +57,23 @@ function loadStoredConfig() {
   try {
     const saved = localStorage.getItem('tx3_config');
     if (saved) {
-      config = { ...CONFIG_DEFAULTS, ...JSON.parse(saved) };
+      const parsed = JSON.parse(saved);
+      // Auto-migrate obsolete temporary quick tunnels (*.trycloudflare.com, *.loca.lt, etc.)
+      if (parsed.cloudUrl && (parsed.cloudUrl.includes('trycloudflare.com') || parsed.cloudUrl.includes('loca.lt') || parsed.cloudUrl.includes('ngrok'))) {
+        console.warn('Auto-migrated legacy quick tunnel to vault.umiaq.top');
+        parsed.cloudUrl = CONFIG_DEFAULTS.cloudUrl;
+      }
+      if (parsed.fbCloudUrl && (parsed.fbCloudUrl.includes('trycloudflare.com') || parsed.fbCloudUrl.includes('loca.lt') || parsed.fbCloudUrl.includes('ngrok'))) {
+        parsed.fbCloudUrl = CONFIG_DEFAULTS.fbCloudUrl;
+      }
+      // Migrate case where fbLanUrl was saved with cloud URL
+      if (parsed.fbLanUrl && parsed.fbLanUrl.startsWith('https://')) {
+        parsed.fbCloudUrl = parsed.fbLanUrl;
+        parsed.fbLanUrl = CONFIG_DEFAULTS.fbLanUrl;
+      }
+      config = { ...CONFIG_DEFAULTS, ...parsed };
+      // Save back sanitized configuration
+      localStorage.setItem('tx3_config', JSON.stringify(config));
     }
   } catch (e) {
     console.error('Failed to load settings', e);
@@ -67,9 +83,22 @@ function loadStoredConfig() {
 function saveSettings() {
   config.lanUrl = document.getElementById('cfgLanUrl').value.trim();
   config.cloudUrl = document.getElementById('cfgCloudUrl').value.trim();
-  config.fbLanUrl = document.getElementById('cfgFbUrl').value.trim();
+  config.fbCloudUrl = document.getElementById('cfgFbUrl').value.trim();
   localStorage.setItem('tx3_config', JSON.stringify(config));
   Native.toast('Settings saved. Reconnecting...');
+  closeSettingsModal();
+  detectNetworkAndInit();
+}
+
+function resetSettingsToDefault() {
+  Native.vibrate(30);
+  config = { ...CONFIG_DEFAULTS };
+  localStorage.removeItem('tx3_config');
+  document.getElementById('cfgLanUrl').value = config.lanUrl;
+  document.getElementById('cfgCloudUrl').value = config.cloudUrl;
+  document.getElementById('cfgFbUrl').value = config.fbCloudUrl;
+  setRouteMode('auto');
+  Native.toast('Reset to default (vault.umiaq.top)');
   closeSettingsModal();
   detectNetworkAndInit();
 }
@@ -493,7 +522,11 @@ function showSettings() {
   setRouteMode(config.routeMode);
   document.getElementById('cfgLanUrl').value = config.lanUrl;
   document.getElementById('cfgCloudUrl').value = config.cloudUrl;
-  document.getElementById('cfgFbUrl').value = config.fbLanUrl;
+  document.getElementById('cfgFbUrl').value = config.fbCloudUrl || CONFIG_DEFAULTS.fbCloudUrl;
+  const currentActiveEl = document.getElementById('cfgActiveRouteInfo');
+  if (currentActiveEl) {
+    currentActiveEl.innerText = `Active: ${activeBaseUrl} (${isLanActive ? 'LAN Direct' : 'Cloudflare Tunnel'})`;
+  }
   document.getElementById('settingsModal').classList.add('active');
 }
 
@@ -788,13 +821,13 @@ function rescanPhotoCatalog() {
 
 
 // ================= GOOGLE DRIVE CONTROLLER =================
-let currentStorageId = 'pendrive';
+let currentStorageId = '3tb_ext';
 let availableStorages = [];
 let driveCurrentPath = '';
 let driveViewMode = localStorage.getItem('tx3_drive_view') || 'grid'; // 'grid' | 'list'
 let driveSortBy = 'name'; // 'name' | 'date' | 'size'
 let driveSortOrder = 'asc';
-let driveData = { storage_id: 'pendrive', storage_name: 'Pendrive 128GB', current_path: '', breadcrumbs: [], folders: [], files: [] };
+let driveData = { storage_id: '3tb_ext', storage_name: '3TB-ext', current_path: '', breadcrumbs: [], folders: [], files: [] };
 let selectedDriveItem = null;
 let isItemFolder = false;
 
@@ -804,6 +837,11 @@ async function fetchDriveStorages() {
     if (res.ok) {
       const data = await res.json();
       availableStorages = data.storages || [];
+      if (availableStorages.length > 0) {
+        if (!availableStorages.some(s => s.id === currentStorageId)) {
+          currentStorageId = availableStorages[0].id;
+        }
+      }
       renderStorageChips();
     }
   } catch (e) {
@@ -816,8 +854,8 @@ function renderStorageChips() {
   if (!container) return;
   if (!availableStorages || availableStorages.length === 0) {
     availableStorages = [
-      { id: 'pendrive', name: 'Pendrive 128GB', icon: '💾', free_human: '104 GB free' },
-      { id: 'sdcard', name: 'MicroSD 64GB', icon: '🗄️', free_human: '54 GB free' }
+      { id: '3tb_ext', name: '3TB-ext', icon: '💾', free_human: 'Active' },
+      { id: '500gb_ext', name: '500GB-ext', icon: '🗄️', free_human: 'Active' }
     ];
   }
 
