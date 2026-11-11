@@ -1,0 +1,13 @@
+[Unit]
+Description=TX3 Mini Front Panel LED Display & Marquee Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /usr/local/bin/tx3-display.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

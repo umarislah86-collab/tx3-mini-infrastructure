@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>⚡ TX3 Magic Drop</title>
+  <link rel="manifest" href="drop_manifest.json">
+  <meta name="theme-color" content="#0B0F19">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: #0B0F19;
+      color: #F8FAFC;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 20px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(56, 189, 248, 0.1);
+      color: #38BDF8;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 24px; font-weight: 800; margin-bottom: 8px; color: #FFFFFF; }
+    p { font-size: 13px; color: #94A3B8; margin-bottom: 24px; line-height: 1.4; }
+    .dropzone {
+      border: 2px dashed #38BDF8;
+      background: rgba(56, 189, 248, 0.03);
+      border-radius: 16px;
+      padding: 36px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 20px;
+    }
+    .dropzone:active, .dropzone.dragover {
+      background: rgba(56, 189, 248, 0.1);
+      transform: scale(0.98);
+      border-color: #0284C7;
+    }
+    .icon { font-size: 42px; margin-bottom: 12px; display: block; }
+    .btn-main {
+      display: inline-block;
+      background: #38BDF8;
+      color: #0B0F19;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      margin-top: 8px;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+    }
+    .status {
+      font-size: 13px;
+      min-height: 24px;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+    .status.success { color: #10B981; }
+    .status.loading { color: #F59E0B; }
+    .status.error { color: #EF4444; }
+    .text-box {
+      width: 100%;
+      background: #0B0F19;
+      border: 1px solid #1F2937;
+      border-radius: 12px;
+      padding: 12px;
+      color: #F8FAFC;
+      font-size: 13px;
+      margin-bottom: 10px;
+      resize: none;
+    }
+    .btn-text {
+      width: 100%;
+      background: #1F2937;
+      color: #94A3B8;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-text:active { background: #374151; color: #FFFFFF; }
+    input[type="file"] { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="badge">INSTANT CLIPBOARD SYNC</div>
+    <h1>⚡ TX3 Magic Drop</h1>
+    <p>Campak fail atau teks kat sini. Dia akan automatik masuk dalam <b>Clipboard PC</b> kau serta-merta!</p>
+
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <span class="icon">📸</span>
+      <div style="font-weight: 700; font-size: 15px;">Tap untuk Pilih Gambar / Fail</div>
+      <div style="font-size: 11px; color: #64748B; margin-top: 4px;">Boleh pilih banyak keping serentak</div>
+      <div class="btn-main">PILIH DARI PHONE</div>
+    </div>
+    <input type="file" id="fileInput" multiple accept="image/*,video/*,*/*">
+
+    <textarea class="text-box" id="textBox" rows="2" placeholder="Atau paste teks / link untuk hantar ke PC..."></textarea>
+    <button class="btn-text" id="sendTextBtn" onclick="sendText()">HANTAR TEKS KE CLIPBOARD PC 📋</button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const statusEl = document.getElementById('status');
+    const dropzone = document.getElementById('dropzone');
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length > 0) {
+        uploadFiles(fileInput.files);
+      }
+    });
+
+    // Drag and drop handlers
+    ['dragenter', 'dragover'].forEach(name => {
+      dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+    });
+    dropzone.addEventListener('drop', (e) => {
+      if (e.dataTransfer.files.length > 0) {
+        uploadFiles(e.dataTransfer.files);
+      }
+    });
+
+    async function uploadFiles(files) {
+      statusEl.className = 'status loading';
+      statusEl.textContent = `Sedang upload ${files.length} fail... ⏳`;
+
+      const formData = new FormData();
+      formData.append('device', 'Xiaomi 14T');
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+
+      try {
+        const res = await fetch('/api/collections/drops/records', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          statusEl.className = 'status success';
+          statusEl.textContent = `✨ Berjaya! ${files.length} fail dah masuk Clipboard PC!`;
+          if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+          setTimeout(() => { statusEl.textContent = ''; }, 4000);
+        } else {
+          const err = await res.json();
+          statusEl.className = 'status error';
+          statusEl.textContent = 'Gagal: ' + (err.message || 'Server error');
+        }
+      } catch (e) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Error: ' + e.message;
+      }
+      fileInput.value = '';
+    }
+
+    async function sendText() {
+      const text = document.getElementById('textBox').value.trim();
+      if (!text) return;
+      statusEl.className = 'status loading';
+      statusEl.textContent = 'Sedang hantar teks ke PC... ⏳';
+
+      try {
+        const res = await fetch('/api/collections/drops/records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: text,
+            device: 'Xiaomi 14T'
+          })
+        });
+
+        if (res.ok) {
+          statusEl.className = 'status success';
+          statusEl.textContent = '✨ Teks dah masuk Clipboard PC! Tekan Ctrl+V!';
+          document.getElementById('textBox').value = '';
+          if (navigator.vibrate) navigator.vibrate(50);
+          setTimeout(() => { statusEl.textContent = ''; }, 4000);
+        }
+      } catch (e) {
+        statusEl.className = 'status error';
+        statusEl.textContent = 'Error: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>

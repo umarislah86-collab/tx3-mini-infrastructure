@@ -14,6 +14,12 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from PIL import Image, ImageOps, ExifTags
 
+try:
+    import cinema
+except Exception as e:
+    cinema = None
+    print("Cinema module load error:", e)
+
 PC_MACS = [
     'BC:BF:2E:14:6E:8B',  # Realtek PCIe GbE (Ethernet)
     'CC:C5:30:0A:E4:6C',  # Realtek 8852BE (Wi-Fi)
@@ -62,13 +68,51 @@ def get_primary_dota_dir():
     dirs = get_dota_dirs()
     return dirs[0] if dirs else '/shares/3TB-ext/Vids/Dota 2'
 
-DOTA_DIR = get_primary_dota_dir()
+def get_notes_file():
+    dota_3tb = '/shares/3TB-ext/Vids/Dota 2/_notes.json'
+    if os.path.exists(dota_3tb):
+        return dota_3tb
+    for d in get_dota_dirs():
+        nf = os.path.join(d, '_notes.json')
+        if os.path.exists(nf):
+            return nf
+    return os.path.join(BASE_DIR, '_notes.json')
 
-# Look for cache, notes, thumbnails directly in primary Dota dir first, or fallback to BASE_DIR
-NOTES_FILE = os.path.join(DOTA_DIR, '_notes.json') if os.path.exists(os.path.join(DOTA_DIR, '_notes.json')) else os.path.join(BASE_DIR, '_notes.json')
-CACHE_FILE = os.path.join(DOTA_DIR, '_sessions_cache.json') if os.path.exists(os.path.join(DOTA_DIR, '_sessions_cache.json')) else os.path.join(BASE_DIR, '_sessions_cache.json')
-SETTINGS_FILE = os.path.join(DOTA_DIR, '_settings.json') if os.path.exists(os.path.join(DOTA_DIR, '_settings.json')) else os.path.join(BASE_DIR, '_settings.json')
-THUMB_DIR = os.path.join(DOTA_DIR, '_thumbnails') if os.path.exists(os.path.join(DOTA_DIR, '_thumbnails')) else os.path.join(BASE_DIR, '_thumbnails')
+def get_cache_file():
+    dota_3tb = '/shares/3TB-ext/Vids/Dota 2/_sessions_cache.json'
+    if os.path.exists(dota_3tb):
+        return dota_3tb
+    for d in get_dota_dirs():
+        cf = os.path.join(d, '_sessions_cache.json')
+        if os.path.exists(cf):
+            return cf
+    return os.path.join(BASE_DIR, '_sessions_cache.json')
+
+def get_settings_file():
+    dota_3tb = '/shares/3TB-ext/Vids/Dota 2/_settings.json'
+    if os.path.exists(dota_3tb):
+        return dota_3tb
+    for d in get_dota_dirs():
+        sf = os.path.join(d, '_settings.json')
+        if os.path.exists(sf):
+            return sf
+    return os.path.join(BASE_DIR, '_settings.json')
+
+def get_thumb_dir():
+    dota_3tb = '/shares/3TB-ext/Vids/Dota 2/_thumbnails'
+    if os.path.exists(dota_3tb):
+        return dota_3tb
+    for d in get_dota_dirs():
+        td = os.path.join(d, '_thumbnails')
+        if os.path.exists(td):
+            return td
+    return os.path.join(BASE_DIR, '_thumbnails')
+
+DOTA_DIR = get_primary_dota_dir()
+NOTES_FILE = get_notes_file()
+CACHE_FILE = get_cache_file()
+SETTINGS_FILE = get_settings_file()
+THUMB_DIR = get_thumb_dir()
 DIST_DIR = os.path.join(BASE_DIR, 'dist')
 
 # Photos Vault Paths
@@ -500,14 +544,15 @@ def parse_session_folder(folder_name, full_path):
         "clip_count": clip_count,
         "total_mb": round(total_bytes / (1024 * 1024), 1),
         "sort_key": sort_key,
-        "thumbnail_path": os.path.join(THUMB_DIR, f"{folder_name}.jpg")
+        "thumbnail_path": os.path.join(get_thumb_dir(), f"{folder_name}.jpg")
     }
 
 def get_sessions():
     cached = {}
-    if os.path.exists(CACHE_FILE):
+    cf = get_cache_file()
+    if os.path.exists(cf):
         try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+            with open(cf, 'r', encoding='utf-8') as f:
                 for s in json.load(f):
                     cached[s.get('folder_name')] = s
         except Exception:
@@ -515,6 +560,7 @@ def get_sessions():
 
     updated = False
     current_folders = {}
+    thumb_dir = get_thumb_dir()
     for d_dir in get_dota_dirs():
         try:
             for name in os.listdir(d_dir):
@@ -539,7 +585,7 @@ def get_sessions():
             fp = current_folders[name]
             s['folder_path'] = fp
             # Determine thumbnail
-            thumb = os.path.join(THUMB_DIR, f"{name}.jpg")
+            thumb = os.path.join(thumb_dir, f"{name}.jpg")
             if not os.path.exists(thumb):
                 alt_thumb = os.path.join(os.path.dirname(fp), '_thumbnails', f"{name}.jpg")
                 if os.path.exists(alt_thumb):
@@ -552,9 +598,13 @@ def get_sessions():
 
     if updated:
         try:
-            with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            with open(cf, 'w', encoding='utf-8') as f:
                 json.dump(result, f, indent=2)
-            print("Session cache updated successfully.")
+            print("Session cache updated successfully in:", cf)
+            emmc_cf = os.path.join(BASE_DIR, '_sessions_cache.json')
+            if emmc_cf != cf:
+                with open(emmc_cf, 'w', encoding='utf-8') as f2:
+                    json.dump(result, f2, indent=2)
         except Exception as e:
             print("Failed to save cache:", e)
 
@@ -821,6 +871,32 @@ class VaultHandler(BaseHTTPRequestHandler):
                 self.wfile.write(payload)
             return
 
+        # ---------------- TX3 CINEMA / PLAYBACK STATE API ----------------
+        if pathname == '/api/playback/progress':
+            path_param = params.get('path', [''])[0]
+            pb = cinema.get_progress(path_param) if cinema else {}
+            payload = json.dumps(pb or {}).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.send_cors()
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(payload)
+            return
+
+        if pathname == '/api/playback/continue':
+            items = cinema.get_continue_watching(15) if cinema else []
+            payload = json.dumps({'items': items}).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.send_cors()
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(payload)
+            return
+
         # ---------------- GOOGLE DRIVE FILE EXPLORER API ----------------
         if pathname == '/api/drive/storages':
             storages_data = get_available_storages()
@@ -857,6 +933,7 @@ class VaultHandler(BaseHTTPRequestHandler):
 
             folders = []
             files = []
+            progress_map = cinema.get_all_progress_map() if cinema else {}
 
             try:
                 for item in os.listdir(abs_target):
@@ -889,7 +966,7 @@ class VaultHandler(BaseHTTPRequestHandler):
                         ext = os.path.splitext(item)[1]
                         ftype, is_media = get_file_type_meta(ext)
                         size_bytes = st.st_size if 'st' in locals() else 0
-                        files.append({
+                        file_obj = {
                             'name': item,
                             'path': item_rel,
                             'size_bytes': size_bytes,
@@ -899,7 +976,12 @@ class VaultHandler(BaseHTTPRequestHandler):
                             'ext': ext.lstrip('.').upper(),
                             'type': ftype,
                             'is_media': is_media
-                        })
+                        }
+                        if ftype == 'video':
+                            pb = progress_map.get(item_rel) or progress_map.get(item_abs)
+                            if pb:
+                                file_obj['playback'] = pb
+                        files.append(file_obj)
             except Exception as e:
                 print("Error listing drive dir:", e)
 
@@ -1146,13 +1228,15 @@ class VaultHandler(BaseHTTPRequestHandler):
             return
 
         if pathname == '/api/notes':
+            nf = get_notes_file()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_cors()
             self.end_headers()
             if not head_only:
-                if os.path.exists(NOTES_FILE):
-                    with open(NOTES_FILE, 'rb') as f:
+                if os.path.exists(nf):
+                    with open(nf, 'rb') as f:
                         self.wfile.write(f.read())
                 else:
                     self.wfile.write(b'{}')
@@ -1195,7 +1279,7 @@ class VaultHandler(BaseHTTPRequestHandler):
                     thumb_path = cand
                     break
             if not thumb_path or not os.path.exists(thumb_path):
-                thumb_path = os.path.join(THUMB_DIR, f"{clean_name}.jpg")
+                thumb_path = os.path.join(get_thumb_dir(), f"{clean_name}.jpg")
 
             if os.path.exists(thumb_path):
                 self.send_response(200)
@@ -1334,12 +1418,41 @@ class VaultHandler(BaseHTTPRequestHandler):
         pathname = parsed.path
         params = urllib.parse.parse_qs(parsed.query)
 
+        # ---------------- TX3 CINEMA / PLAYBACK STATE API ----------------
+        if pathname == '/api/playback/progress':
+            body = read_json_body(self)
+            saved = None
+            if cinema:
+                saved = cinema.save_progress(
+                    file_path=body.get('path', ''),
+                    storage_id=body.get('storage_id', ''),
+                    title=body.get('title', ''),
+                    folder_name=body.get('folder_name', ''),
+                    position_ms=body.get('position_ms', 0),
+                    duration_ms=body.get('duration_ms', 0),
+                    is_completed=body.get('is_completed', None)
+                )
+            payload = json.dumps({'success': True, 'data': saved}).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.send_cors()
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
         if pathname == '/api/notes':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
+            nf = get_notes_file()
             try:
-                with open(NOTES_FILE, 'wb') as f:
+                with open(nf, 'wb') as f:
                     f.write(body)
+                # Safeguard mirror copy on eMMC
+                emmc_nf = os.path.join(BASE_DIR, '_notes.json')
+                if emmc_nf != nf:
+                    with open(emmc_nf, 'wb') as f2:
+                        f2.write(body)
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.send_cors()
