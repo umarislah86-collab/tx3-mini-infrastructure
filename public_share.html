@@ -732,44 +732,11 @@
       } else if (type === 'video') {
         document.getElementById('lbTitle').textContent = decodedName;
         document.getElementById('lbDownloadBtn').href = downloadUrl;
+        const streamUrl = `/api/share/${shareToken}/stream?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`;
         document.getElementById('lbStage').innerHTML = `
-          <div class="video-loader">
-            <div class="spinner"></div>
-            <p style="margin-top: 16px; font-weight: 600; font-size: 15px;">Menyediakan Video...</p>
-            <p id="videoStatusMsg" style="font-size: 12.5px; color: var(--text-muted); margin-top: 6px;">Memeriksa format video...</p>
-          </div>
+          <video src="${streamUrl}" controls autoplay playsinline style="max-width: 100%; max-height: 85vh; border-radius: 8px;"></video>
         `;
         document.getElementById('mediaLightbox').classList.add('active');
-
-        const streamUrl = `/api/share/${shareToken}/stream?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`;
-
-        const checkStatus = async () => {
-          try {
-            const res = await fetch(`/api/share/${shareToken}/video_status?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`);
-            if (!res.ok) {
-              document.getElementById('lbStage').innerHTML = `<video src="${streamUrl}" controls autoplay playsinline></video>`;
-              return;
-            }
-            const data = await res.json();
-            if (data.ready) {
-              if (videoPollTimer) {
-                clearInterval(videoPollTimer);
-                videoPollTimer = null;
-              }
-              document.getElementById('lbStage').innerHTML = `<video src="${streamUrl}" controls autoplay playsinline></video>`;
-            } else {
-              const msg = document.getElementById('videoStatusMsg');
-              if (msg) {
-                msg.textContent = '⚡ Mengoptimumkan format video untuk pelayar web (H.264 MP4)... Sila tunggu sebentar.';
-              }
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        };
-
-        checkStatus();
-        videoPollTimer = setInterval(checkStatus, 2000);
       } else {
         // Direct download for documents / others
         window.location.href = downloadUrl;

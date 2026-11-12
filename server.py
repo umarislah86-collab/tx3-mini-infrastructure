@@ -1357,25 +1357,7 @@ class VaultHandler(BaseHTTPRequestHandler):
                         self.wfile.write(payload)
                     return
 
-                if action == 'video_status':
-                    req_path = params.get('path', [''])[0]
-                    target_abs = sharing.resolve_shared_path(share, req_path)
-                    if not target_abs or not os.path.isfile(target_abs):
-                        self.send_response(404)
-                        self.send_cors()
-                        self.end_headers()
-                        return
-                    status, _ = sharing.get_transcode_status(target_abs)
-                    payload = json.dumps({'status': status, 'ready': (status == 'ready')}).encode('utf-8')
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.send_cors()
-                    self.end_headers()
-                    if not head_only:
-                        self.wfile.write(payload)
-                    return
-
-                if action in ('download', 'stream'):
+                if action == 'download':
                     req_path = params.get('path', [''])[0]
                     target_abs = sharing.resolve_shared_path(share, req_path)
                     if not target_abs or not os.path.isfile(target_abs):
@@ -1384,22 +1366,12 @@ class VaultHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         return
 
-                    if action == 'download':
-                        sharing.record_download(token)
-                        serve_path = target_abs
-                        mime, _ = mimetypes.guess_type(target_abs)
-                        mime = mime or 'application/octet-stream'
-                        is_attachment = True
-                    else:
-                        # stream action: transcode legacy video if needed
-                        serve_path = sharing.get_or_transcode_video(target_abs, wait_timeout=10)
-                        mime = 'video/mp4'
-                        is_attachment = False
+                    sharing.record_download(token)
+                    f_size = os.path.getsize(target_abs)
+                    filename = os.path.basename(target_abs)
+                    mime, _ = mimetypes.guess_type(target_abs)
+                    mime = mime or 'application/octet-stream'
 
-                    f_size = os.path.getsize(serve_path)
-                    filename = os.path.basename(serve_path)
-
-                    # Handle HTTP Range Requests for smooth seeking / playback
                     range_hdr = self.headers.get('Range')
                     if range_hdr and range_hdr.startswith('bytes='):
                         try:
@@ -1422,7 +1394,7 @@ class VaultHandler(BaseHTTPRequestHandler):
                             self.end_headers()
 
                             if not head_only:
-                                with open(serve_path, 'rb') as f:
+                                with open(target_abs, 'rb') as f:
                                     f.seek(start)
                                     remaining = length
                                     while remaining > 0:
@@ -1439,14 +1411,13 @@ class VaultHandler(BaseHTTPRequestHandler):
                     self.send_header('Content-Type', mime)
                     self.send_header('Content-Length', str(f_size))
                     self.send_header('Accept-Ranges', 'bytes')
-                    disp = 'attachment' if is_attachment else 'inline'
-                    self.send_header('Content-Disposition', f'{disp}; filename="{filename}"')
+                    self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
                     self.send_cors()
                     self.end_headers()
 
                     if not head_only:
                         try:
-                            with open(serve_path, 'rb') as f:
+                            with open(target_abs, 'rb') as f:
                                 while True:
                                     chunk = f.read(1024 * 512)
                                     if not chunk:
@@ -1455,6 +1426,113 @@ class VaultHandler(BaseHTTPRequestHandler):
                         except (BrokenPipeError, ConnectionResetError):
                             pass
                     return
+
+                if action == 'stream':
+                    req_path = params.get('path', [''])[0]
+                    target_abs = sharing.resolve_shared_path(share, req_path)
+                    if not target_abs or not os.path.isfile(target_abs):
+                        self.send_response(404)
+                        self.send_cors()
+                        self.end_headers()
+                        return
+
+                    status, cached_path = sharing.get_transcode_status(target_abs)
+                    if status == 'ready':
+                        serve_path = cached_path
+                        f_size = os.path.getsize(serve_path)
+                        mime = 'video/mp4'
+
+                        range_hdr = self.headers.get('Range')
+                        if range_hdr and range_hdr.startswith('bytes='):
+                            try:
+                                start_str, end_str = range_hdr[6:].split('-')
+                                start = int(start_str)
+                                end = int(end_str) if end_str else f_size - 1
+                                if start >= f_size:
+                                    self.send_response(416)
+                                    self.end_headers()
+                                    return
+                                end = min(end, f_size - 1)
+                                length = end - start + 1
+
+                                self.send_response(206)
+                                self.send_header('Content-Type', mime)
+                                self.send_header('Content-Range', f'bytes {start}-{end}/{f_size}')
+                                self.send_header('Content-Length', str(length))
+                                self.send_header('Accept-Ranges', 'bytes')
+                                self.send_cors()
+                                self.end_headers()
+
+                                if not head_only:
+                                    with open(serve_path, 'rb') as f:
+                                        f.seek(start)
+                                        remaining = length
+                                        while remaining > 0:
+                                            chunk = f.read(min(remaining, 1024 * 512))
+                                            if not chunk:
+                                                break
+                                            self.wfile.write(chunk)
+                                            remaining -= len(chunk)
+                                return
+                            except Exception:
+                                pass
+
+                        self.send_response(200)
+                        self.send_header('Content-Type', mime)
+                        self.send_header('Content-Length', str(f_size))
+                        self.send_header('Accept-Ranges', 'bytes')
+                        self.send_cors()
+                        self.end_headers()
+
+                        if not head_only:
+                            try:
+                                with open(serve_path, 'rb') as f:
+                                    while True:
+                                        chunk = f.read(1024 * 512)
+                                        if not chunk:
+                                            break
+                                        self.wfile.write(chunk)
+                            except (BrokenPipeError, ConnectionResetError):
+                                pass
+                        return
+                    else:
+                        # On-demand live stream: starts playing in ~3s!
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'video/mp4')
+                        self.send_header('Cache-Control', 'no-cache')
+                        self.send_cors()
+                        self.end_headers()
+
+                        if head_only:
+                            return
+
+                        cmd = [
+                            'ffmpeg', '-i', target_abs,
+                            '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',
+                            '-crf', '24', '-g', '25',
+                            '-c:a', 'aac', '-b:a', '128k',
+                            '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+                            '-f', 'mp4', 'pipe:1'
+                        ]
+                        proc = None
+                        try:
+                            import subprocess
+                            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                            while True:
+                                chunk = proc.stdout.read(65536)
+                                if not chunk:
+                                    break
+                                self.wfile.write(chunk)
+                        except (BrokenPipeError, ConnectionResetError):
+                            pass
+                        finally:
+                            if proc:
+                                try:
+                                    proc.terminate()
+                                    proc.wait(timeout=2)
+                                except Exception:
+                                    proc.kill()
+                        return
 
                 if action == 'thumb':
                     req_path = params.get('path', [''])[0]
