@@ -611,8 +611,15 @@ def get_sessions():
             s['thumbnail_path'] = thumb
             result.append(s)
         else:
-            # Still keep cached sessions if not actively missing
-            result.append(s)
+            # If path uses Windows drive letter, normalize it
+            if s.get('folder_path', '').startswith('E:'):
+                s['folder_path'] = s['folder_path'].replace('E:', '/shares/3TB-ext').replace('\\', '/')
+                updated = True
+            # Only keep cached session if folder actually exists on disk
+            if os.path.exists(s.get('folder_path', '')):
+                result.append(s)
+            else:
+                updated = True
 
     if updated:
         try:
