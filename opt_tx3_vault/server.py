@@ -9,6 +9,7 @@ import hashlib
 import mimetypes
 import subprocess
 import urllib.parse
+import threading
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -464,6 +465,8 @@ def scan_photos(force=False):
 
     return catalog_result
 
+THUMB_SEMAPHORE = threading.Semaphore(2)
+
 def get_or_generate_thumbnail(photo_item):
     p_id = photo_item['id']
     thumb_path = os.path.join(PHOTO_THUMB_DIR, f"{p_id}.jpg")
@@ -474,31 +477,41 @@ def get_or_generate_thumbnail(photo_item):
     if not os.path.exists(abs_path):
         return None
 
-    try:
-        if photo_item['is_video']:
-            cmd = [
-                'ffmpeg', '-y', '-ss', '00:00:01',
-                '-i', abs_path,
-                '-vframes', '1',
-                '-vf', 'scale=450:450:force_original_aspect_ratio=decrease',
-                '-q:v', '3',
-                thumb_path
-            ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
-        else:
-            with Image.open(abs_path) as im:
-                im = ImageOps.exif_transpose(im)
-                im.thumbnail((450, 450))
-                if im.mode not in ('RGB', 'L'):
-                    im = im.convert('RGB')
-                im.save(thumb_path, 'JPEG', quality=80, optimize=True)
-
-        if os.path.exists(thumb_path):
+    # Limit concurrent image decoding to 2 threads to prevent memory spikes / OOM
+    with THUMB_SEMAPHORE:
+        # Re-check if another thread finished it while waiting
+        if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 0:
             return thumb_path
-    except Exception as e:
-        print(f"Error generating thumbnail for {abs_path}:", e)
 
-    return None
+        try:
+            if photo_item['is_video']:
+                cmd = [
+                    'ffmpeg', '-y', '-ss', '00:00:01',
+                    '-i', abs_path,
+                    '-vframes', '1',
+                    '-vf', 'scale=450:450:force_original_aspect_ratio=decrease',
+                    '-q:v', '3',
+                    thumb_path
+                ]
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+            else:
+                with Image.open(abs_path) as im:
+                    try:
+                        im.draft('RGB', (450, 450))
+                    except Exception:
+                        pass
+                    im = ImageOps.exif_transpose(im)
+                    im.thumbnail((450, 450))
+                    if im.mode not in ('RGB', 'L'):
+                        im = im.convert('RGB')
+                    im.save(thumb_path, 'JPEG', quality=80, optimize=True)
+
+            if os.path.exists(thumb_path):
+                return thumb_path
+        except Exception as e:
+            print(f"Error generating thumbnail for {abs_path}:", e)
+
+        return None
 
 def parse_session_folder(folder_name, full_path):
     m = re.search(r'(\d{2})-(\d{2})-(\d{4})_(\d{2})-(\d{2})', folder_name)
@@ -1609,8 +1622,6 @@ class VaultHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
             return
-
-import threading
 
 print(f"=================================================")
 print(f"  TX3 Mini Vault Server (Photos + Dota 2 + Power)")

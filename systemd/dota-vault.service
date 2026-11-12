@@ -9,6 +9,8 @@ WorkingDirectory=/opt/tx3-vault
 ExecStart=/usr/bin/python3 /opt/tx3-vault/server.py
 Restart=always
 RestartSec=5
+MemoryHigh=400M
+MemoryMax=500M
 Environment=PORT=3030
 
 [Install]
