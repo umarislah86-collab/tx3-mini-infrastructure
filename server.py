@@ -61,6 +61,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def get_dota_dirs():
     candidates = [
         '/shares/3TB-ext/Vids/Dota 2',
+        '/shares/3TB-ext/Vids/Dota 2/Dota2 overwolf',
         '/shares/500GB-ext/Dota2 overwolf',
         '/shares/3TB-ext/Outplayed/Dota 2',
         '/shares/Pendrive-128GB/Dota 2'
@@ -598,7 +599,9 @@ def get_sessions():
             continue
         if name in current_folders:
             fp = current_folders[name]
-            s['folder_path'] = fp
+            if s.get('folder_path') != fp:
+                s['folder_path'] = fp
+                updated = True
             # Determine thumbnail
             thumb = os.path.join(thumb_dir, f"{name}.jpg")
             if not os.path.exists(thumb):
