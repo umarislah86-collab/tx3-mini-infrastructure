@@ -1,0 +1,18 @@
+[Unit]
+Description=TX3 Photos Vault Background Thumbnail Pre-generator
+After=network.target dota-vault.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/tx3-vault
+ExecStart=/usr/bin/python3 /opt/tx3-vault/pregenerate_thumbs.py
+Restart=no
+Nice=19
+CPUShares=100
+IOSchedulingClass=idle
+MemoryHigh=300M
+MemoryMax=400M
+
+[Install]
+WantedBy=multi-user.target

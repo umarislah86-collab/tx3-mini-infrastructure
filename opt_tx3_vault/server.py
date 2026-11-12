@@ -1123,6 +1123,25 @@ class VaultHandler(BaseHTTPRequestHandler):
                 self.wfile.write(payload)
             return
 
+        if pathname == '/api/photos/thumb-progress':
+            prog_file = os.path.join(PHOTO_CACHE_DIR, 'thumb_progress.json')
+            if os.path.exists(prog_file):
+                try:
+                    with open(prog_file, 'r', encoding='utf-8') as f:
+                        payload = f.read().encode('utf-8')
+                except Exception:
+                    payload = b'{"status": "error"}'
+            else:
+                payload = b'{"status": "idle"}'
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.send_cors()
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(payload)
+            return
+
         if pathname == '/api/photos/thumb':
             p_id = params.get('id', [''])[0]
             photo = photos_index.get(p_id)
