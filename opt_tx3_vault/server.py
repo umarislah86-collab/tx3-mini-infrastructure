@@ -910,6 +910,52 @@ class VaultHandler(BaseHTTPRequestHandler):
                 self.wfile.write(payload)
             return
 
+        if pathname == '/api/cinema/library':
+            res = cinema.scan_cinema_library() if cinema else {"series": []}
+            payload = json.dumps(res).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.send_cors()
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(payload)
+            return
+
+        if pathname == '/api/cinema/thumb':
+            path_param = params.get('path', [''])[0]
+            thumb_file = cinema.get_video_thumbnail(path_param) if cinema else None
+            if thumb_file and os.path.exists(thumb_file):
+                f_size = os.path.getsize(thumb_file)
+                self.send_response(200)
+                self.send_header('Content-Type', 'image/jpeg')
+                self.send_header('Content-Length', str(f_size))
+                self.send_header('Cache-Control', 'public, max-age=604800')
+                self.send_cors()
+                self.end_headers()
+                if not head_only:
+                    with open(thumb_file, 'rb') as f:
+                        shutil.copyfileobj(f, self.wfile)
+                return
+            else:
+                self.send_response(404)
+                self.send_cors()
+                self.end_headers()
+                return
+
+        if pathname == '/api/cinema/siblings':
+            path_param = params.get('path', [''])[0]
+            siblings = cinema.get_sibling_episodes(path_param) if cinema else []
+            payload = json.dumps({'episodes': siblings}).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.send_cors()
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(payload)
+            return
+
         # ---------------- GOOGLE DRIVE FILE EXPLORER API ----------------
         if pathname == '/api/drive/storages':
             storages_data = get_available_storages()
