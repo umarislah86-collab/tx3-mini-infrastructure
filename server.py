@@ -704,6 +704,20 @@ def get_system_stats():
     except Exception:
         pass
 
+    storage_500 = None
+    target_500_dir = '/shares/500GB-ext'
+    try:
+        if os.path.exists(target_500_dir):
+            d_500 = shutil.disk_usage(target_500_dir)
+            storage_500 = {
+                'label': '500GB-ext HDD',
+                'free_gb': round(d_500.free / (1024**3), 1),
+                'total_gb': round(d_500.total / (1024**3), 1),
+                'pct': round((d_500.used / d_500.total) * 100, 1)
+            }
+    except Exception:
+        pass
+
     # 6. Service health states
     services = {
         'dota_vault': True,
@@ -738,11 +752,12 @@ def get_system_stats():
             'pct': root_pct
         },
         'storage_vault': {
-            'label': 'Vault Drive (Pendrive / 3TB HDD)',
+            'label': '3TB-ext HDD (Vault)',
             'free_gb': vault_free_gb,
             'total_gb': vault_total_gb,
             'pct': vault_pct
         },
+        'storage_500gb': storage_500,
         'services': services
     }
 
