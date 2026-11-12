@@ -1010,7 +1010,6 @@ class VaultHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({'success': False, 'error': str(e)}).encode('utf-8'))
                 return
 
-
         # ---------------- TX3 CINEMA / PLAYBACK STATE API ----------------
         if pathname == '/api/playback/progress':
             path_param = params.get('path', [''])[0]
@@ -1358,7 +1357,25 @@ class VaultHandler(BaseHTTPRequestHandler):
                         self.wfile.write(payload)
                     return
 
-                if action == 'download':
+                if action == 'video_status':
+                    req_path = params.get('path', [''])[0]
+                    target_abs = sharing.resolve_shared_path(share, req_path)
+                    if not target_abs or not os.path.isfile(target_abs):
+                        self.send_response(404)
+                        self.send_cors()
+                        self.end_headers()
+                        return
+                    status, _ = sharing.get_transcode_status(target_abs)
+                    payload = json.dumps({'status': status, 'ready': (status == 'ready')}).encode('utf-8')
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_cors()
+                    self.end_headers()
+                    if not head_only:
+                        self.wfile.write(payload)
+                    return
+
+                if action in ('download', 'stream'):
                     req_path = params.get('path', [''])[0]
                     target_abs = sharing.resolve_shared_path(share, req_path)
                     if not target_abs or not os.path.isfile(target_abs):
@@ -1367,13 +1384,22 @@ class VaultHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         return
 
-                    sharing.record_download(token)
-                    f_size = os.path.getsize(target_abs)
-                    filename = os.path.basename(target_abs)
-                    mime, _ = mimetypes.guess_type(target_abs)
-                    mime = mime or 'application/octet-stream'
+                    if action == 'download':
+                        sharing.record_download(token)
+                        serve_path = target_abs
+                        mime, _ = mimetypes.guess_type(target_abs)
+                        mime = mime or 'application/octet-stream'
+                        is_attachment = True
+                    else:
+                        # stream action: transcode legacy video if needed
+                        serve_path = sharing.get_or_transcode_video(target_abs, wait_timeout=10)
+                        mime = 'video/mp4'
+                        is_attachment = False
 
-                    # Handle HTTP Range Requests for smooth streaming
+                    f_size = os.path.getsize(serve_path)
+                    filename = os.path.basename(serve_path)
+
+                    # Handle HTTP Range Requests for smooth seeking / playback
                     range_hdr = self.headers.get('Range')
                     if range_hdr and range_hdr.startswith('bytes='):
                         try:
@@ -1396,7 +1422,7 @@ class VaultHandler(BaseHTTPRequestHandler):
                             self.end_headers()
 
                             if not head_only:
-                                with open(target_abs, 'rb') as f:
+                                with open(serve_path, 'rb') as f:
                                     f.seek(start)
                                     remaining = length
                                     while remaining > 0:
@@ -1413,14 +1439,14 @@ class VaultHandler(BaseHTTPRequestHandler):
                     self.send_header('Content-Type', mime)
                     self.send_header('Content-Length', str(f_size))
                     self.send_header('Accept-Ranges', 'bytes')
-                    safe_fn = urllib.parse.quote(filename)
-                    self.send_header('Content-Disposition', f'inline; filename*=UTF-8''{safe_fn}')
+                    disp = 'attachment' if is_attachment else 'inline'
+                    self.send_header('Content-Disposition', f'{disp}; filename="{filename}"')
                     self.send_cors()
                     self.end_headers()
 
                     if not head_only:
                         try:
-                            with open(target_abs, 'rb') as f:
+                            with open(serve_path, 'rb') as f:
                                 while True:
                                     chunk = f.read(1024 * 512)
                                     if not chunk:
@@ -1439,25 +1465,45 @@ class VaultHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         return
 
-                    # Return image directly (or scaled if PIL available)
-                    mime, _ = mimetypes.guess_type(target_abs)
-                    if not mime or not mime.startswith('image/'):
-                        self.send_response(404)
+                    ext = os.path.splitext(target_abs)[1].lower()
+                    if ext in sharing.VIDEO_EXTS:
+                        thumb_file = sharing.get_video_thumbnail(target_abs)
+                        if thumb_file and os.path.exists(thumb_file):
+                            f_size = os.path.getsize(thumb_file)
+                            self.send_response(200)
+                            self.send_header('Content-Type', 'image/jpeg')
+                            self.send_header('Content-Length', str(f_size))
+                            self.send_header('Cache-Control', 'public, max-age=86400')
+                            self.send_cors()
+                            self.end_headers()
+                            if not head_only:
+                                with open(thumb_file, 'rb') as f:
+                                    self.wfile.write(f.read())
+                            return
+                        else:
+                            self.send_response(404)
+                            self.send_cors()
+                            self.end_headers()
+                            return
+                    else:
+                        mime, _ = mimetypes.guess_type(target_abs)
+                        if not mime or not mime.startswith('image/'):
+                            self.send_response(404)
+                            self.send_cors()
+                            self.end_headers()
+                            return
+
+                        f_size = os.path.getsize(target_abs)
+                        self.send_response(200)
+                        self.send_header('Content-Type', mime)
+                        self.send_header('Content-Length', str(f_size))
+                        self.send_header('Cache-Control', 'public, max-age=86400')
                         self.send_cors()
                         self.end_headers()
+                        if not head_only:
+                            with open(target_abs, 'rb') as f:
+                                self.wfile.write(f.read())
                         return
-
-                    f_size = os.path.getsize(target_abs)
-                    self.send_response(200)
-                    self.send_header('Content-Type', mime)
-                    self.send_header('Content-Length', str(f_size))
-                    self.send_header('Cache-Control', 'public, max-age=86400')
-                    self.send_cors()
-                    self.end_headers()
-                    if not head_only:
-                        with open(target_abs, 'rb') as f:
-                            self.wfile.write(f.read())
-                    return
 
                 if action == 'zip':
                     subpath = params.get('subpath', [''])[0]
@@ -1538,7 +1584,6 @@ class VaultHandler(BaseHTTPRequestHandler):
             if not head_only:
                 self.wfile.write(payload)
             return
-
 
         # ---------------- PHOTOS API ----------------
         if pathname == '/api/photos/auth-check':
@@ -2003,7 +2048,6 @@ class VaultHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({'success': False, 'error': str(e)}).encode('utf-8'))
                 return
-
 
         # ---------------- TX3 CINEMA / PLAYBACK STATE API ----------------
         if pathname == '/api/playback/progress':

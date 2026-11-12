@@ -1,7 +1,8 @@
 """
-TX3 Shared Folders Engine (Multi-Choice & Windows Explorer Tree Browser)
+TX3 Shared Folders Engine (Multi-Choice, Windows Explorer Tree Browser & Video Transcoder)
 Supports single or multiple selected folders, virtual root mapping,
-interactive deep directory browsing, zip downloads, and password protection.
+interactive deep directory browsing, zip downloads, password protection,
+on-demand video transcoding (H.264/AAC for browser compatibility), and video thumbnails.
 """
 
 import os
@@ -15,13 +16,123 @@ import urllib.parse
 from pathlib import Path
 import io
 import zipfile
+import threading
+import subprocess
 
 SHARES_DB = '/opt/tx3-vault/shares.db'
 BASE_STORAGE = '/shares'
+TRANSCODE_CACHE_DIR = '/opt/tx3-vault/transcode_cache'
+THUMB_CACHE_DIR = '/opt/tx3-vault/cinema_cache/thumbs'
+
 IGNORED_NAMES = {
     '$RECYCLE.BIN', 'System Volume Information', '.git', '.DS_Store', 
     'Thumbs.db', 'pagefile.sys', 'DumpStack.log.tmp', 'msdownld.tmp'
 }
+
+VIDEO_EXTS = {
+    '.mp4', '.m4v', '.webm', '.mkv', '.avi', '.mov', '.flv',
+    '.wmv', '.mpg', '.mpeg', '.m2v', '.vob', '.ts', '.3gp', '.m2ts'
+}
+
+IMAGE_EXTS = {
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.svg', '.tiff'
+}
+
+# Thread lock & registry for background transcoding jobs
+TRANSCODE_LOCK = threading.Lock()
+ACTIVE_TRANSCODES = {}
+
+def get_video_thumbnail(file_path):
+    if not os.path.exists(file_path):
+        return None
+    try:
+        os.makedirs(THUMB_CACHE_DIR, exist_ok=True)
+        stat = os.stat(file_path)
+        key = hashlib.md5(f"{file_path}_{stat.st_mtime}_{stat.st_size}".encode()).hexdigest()
+        thumb_path = os.path.join(THUMB_CACHE_DIR, f"sh_thumb_{key}.jpg")
+        if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 500:
+            return thumb_path
+
+        cmd = [
+            'ffmpeg', '-ss', '00:00:01', '-i', file_path,
+            '-vframes', '1', '-q:v', '3', '-vf', 'scale=480:-1',
+            '-y', thumb_path
+        ]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+        if os.path.exists(thumb_path) and os.path.getsize(thumb_path) > 500:
+            return thumb_path
+    except Exception as e:
+        print(f"Error generating video thumbnail for {file_path}: {e}")
+    return None
+
+def get_transcode_status(file_path):
+    """
+    Returns (status, target_path)
+    status: 'ready' (file can be served via Range), 'processing', 'error'
+    """
+    if not os.path.exists(file_path):
+        return 'error', file_path
+
+    ext = os.path.splitext(file_path)[1].lower()
+    # Native web video formats do not need transcoding
+    if ext in ('.mp4', '.m4v', '.webm'):
+        return 'ready', file_path
+
+    os.makedirs(TRANSCODE_CACHE_DIR, exist_ok=True)
+    stat = os.stat(file_path)
+    key = hashlib.md5(f"{file_path}_{stat.st_mtime}_{stat.st_size}".encode()).hexdigest()
+    cached_mp4 = os.path.join(TRANSCODE_CACHE_DIR, f"{key}.mp4")
+
+    if os.path.exists(cached_mp4) and os.path.getsize(cached_mp4) > 1000:
+        return 'ready', cached_mp4
+
+    temp_mp4 = cached_mp4 + ".tmp.mp4"
+
+    with TRANSCODE_LOCK:
+        if file_path in ACTIVE_TRANSCODES and ACTIVE_TRANSCODES[file_path].is_alive():
+            return 'processing', cached_mp4
+
+        def _worker():
+            try:
+                cmd = [
+                    'ffmpeg', '-i', file_path,
+                    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23',
+                    '-c:a', 'aac', '-b:a', '128k',
+                    '-movflags', '+faststart',
+                    '-y', temp_mp4
+                ]
+                res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=600)
+                if res.returncode == 0 and os.path.exists(temp_mp4) and os.path.getsize(temp_mp4) > 1000:
+                    os.replace(temp_mp4, cached_mp4)
+            except Exception as e:
+                print(f"Background transcode failed for {file_path}: {e}")
+                if os.path.exists(temp_mp4):
+                    try:
+                        os.remove(temp_mp4)
+                    except Exception:
+                        pass
+
+        t = threading.Thread(target=_worker, daemon=True)
+        ACTIVE_TRANSCODES[file_path] = t
+        t.start()
+        return 'processing', cached_mp4
+
+def get_or_transcode_video(file_path, wait_timeout=15):
+    """
+    Returns the path to a web-compatible mp4 file.
+    If transcode is needed, waits up to wait_timeout seconds.
+    """
+    status, path = get_transcode_status(file_path)
+    if status == 'ready':
+        return path
+
+    t0 = time.time()
+    while time.time() - t0 < wait_timeout:
+        time.sleep(0.5)
+        if os.path.exists(path) and os.path.getsize(path) > 1000:
+            return path
+
+    return file_path
 
 def get_db():
     conn = sqlite3.connect(SHARES_DB)
@@ -70,7 +181,6 @@ def create_share(folder_paths, title=None, password=None, expires_days=0, allow_
     valid_paths = []
     for fp in folder_paths:
         abs_p = os.path.abspath(fp)
-        # Ensure inside /shares
         try:
             if os.path.commonpath([BASE_STORAGE, abs_p]) == BASE_STORAGE and os.path.isdir(abs_p):
                 valid_paths.append(abs_p)
@@ -80,13 +190,12 @@ def create_share(folder_paths, title=None, password=None, expires_days=0, allow_
     if not valid_paths:
         raise ValueError("Tiada folder sah yang dipilih dalam /shares.")
 
-    # Generate short unique token
     random_bytes = os.urandom(8)
     share_token = f"s_{hashlib.sha256(random_bytes + str(time.time()).encode()).hexdigest()[:10]}"
 
     if not title:
         if len(valid_paths) == 1:
-            title = os.path.basename(valid_paths[0].rstrip('/\\')) or "Shared Folder"
+            title = os.path.basename(valid_paths[0].rstrip('/' + chr(92))) or "Shared Folder"
         else:
             title = f"Perkongsian {len(valid_paths)} Folder"
 
@@ -115,7 +224,7 @@ def list_all_shares():
         result = []
         now = time.time()
         for r in rows:
-            d = dict(r)
+            d = {k: r[k] for k in r.keys()}
             d['is_expired'] = (d['expires_at'] > 0 and d['expires_at'] < now)
             d['has_password'] = bool(d['password_hash'])
             del d['password_hash']
@@ -128,7 +237,7 @@ def get_share(share_token):
         row = conn.execute('SELECT * FROM shares WHERE share_token = ?', (share_token,)).fetchone()
         if not row:
             return None
-        d = dict(row)
+        d = {k: row[k] for k in row.keys()}
         now = time.time()
         d['is_expired'] = (d['expires_at'] > 0 and d['expires_at'] < now)
         d['has_password'] = bool(d['password_hash'])
@@ -211,7 +320,7 @@ def list_folder_contents(share, subpath=''):
     if len(paths) > 1 and not clean_sub:
         items = []
         for idx, fp in enumerate(paths):
-            name = os.path.basename(fp.rstrip('/\\')) or f"Folder {idx+1}"
+            name = os.path.basename(fp.rstrip('/' + chr(92))) or f"Folder {idx+1}"
             items.append({
                 'name': name,
                 'rel_path': str(idx),
@@ -243,7 +352,6 @@ def list_folder_contents(share, subpath=''):
             if name in IGNORED_NAMES or name.startswith('.'):
                 continue
 
-            # Compute virtual rel_path
             if len(paths) == 1:
                 rel_to_base = os.path.relpath(entry.path, paths[0]).replace('\\', '/')
             else:
@@ -262,6 +370,7 @@ def list_folder_contents(share, subpath=''):
             except Exception:
                 pass
 
+            ext = os.path.splitext(name)[1].lower()
             mime = 'application/octet-stream'
             file_type = 'folder' if is_dir else 'file'
 
@@ -269,16 +378,18 @@ def list_folder_contents(share, subpath=''):
                 guessed, _ = mimetypes.guess_type(entry.name)
                 if guessed:
                     mime = guessed
-                    if guessed.startswith('image/'):
-                        file_type = 'image'
-                    elif guessed.startswith('video/'):
-                        file_type = 'video'
-                    elif guessed.startswith('audio/'):
-                        file_type = 'audio'
-                    elif 'pdf' in guessed or 'document' in guessed or 'text' in guessed:
-                        file_type = 'document'
-                    elif 'zip' in guessed or 'tar' in guessed or 'rar' in guessed or 'compressed' in guessed:
-                        file_type = 'archive'
+                if ext in IMAGE_EXTS or (guessed and guessed.startswith('image/')):
+                    file_type = 'image'
+                    if not guessed: mime = 'image/jpeg'
+                elif ext in VIDEO_EXTS or (guessed and guessed.startswith('video/')):
+                    file_type = 'video'
+                    if not guessed: mime = 'video/mp4'
+                elif (guessed and guessed.startswith('audio/')) or ext in ('.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac'):
+                    file_type = 'audio'
+                elif (guessed and ('pdf' in guessed or 'document' in guessed or 'text' in guessed)) or ext in ('.pdf', '.txt', '.doc', '.docx'):
+                    file_type = 'document'
+                elif (guessed and ('zip' in guessed or 'tar' in guessed or 'rar' in guessed or 'compressed' in guessed)) or ext in ('.zip', '.tar', '.gz', '.7z', '.rar'):
+                    file_type = 'archive'
 
             items.append({
                 'name': name,
@@ -310,7 +421,6 @@ def browse_directory_tree(req_path='/shares/3TB-ext'):
         req_path = BASE_STORAGE
 
     abs_target = os.path.abspath(req_path)
-    # Security boundary: must stay within /shares
     try:
         if os.path.commonpath([BASE_STORAGE, abs_target]) != BASE_STORAGE:
             abs_target = BASE_STORAGE
@@ -320,8 +430,6 @@ def browse_directory_tree(req_path='/shares/3TB-ext'):
     if not os.path.exists(abs_target) or not os.path.isdir(abs_target):
         abs_target = BASE_STORAGE
 
-    # Build breadcrumbs
-    # e.g. /shares/3TB-ext/Pictures/Japan -> [ { name: "Storage", path: "/shares" }, { name: "3TB-ext", ... } ]
     rel_from_base = os.path.relpath(abs_target, BASE_STORAGE).replace('\\', '/')
     crumbs = [{'name': 'TX3-Storage', 'path': BASE_STORAGE}]
     
@@ -332,13 +440,11 @@ def browse_directory_tree(req_path='/shares/3TB-ext'):
             accum = os.path.join(accum, p)
             crumbs.append({'name': p, 'path': accum.replace('\\', '/')})
 
-    # List subfolders
     subfolders = []
     try:
         entries = sorted(os.scandir(abs_target), key=lambda e: e.name.lower())
         for entry in entries:
             if entry.is_dir() and entry.name not in IGNORED_NAMES and not entry.name.startswith('.'):
-                # Count children subfolders
                 child_count = 0
                 try:
                     for _ in os.scandir(entry.path):
@@ -353,7 +459,6 @@ def browse_directory_tree(req_path='/shares/3TB-ext'):
     except Exception as e:
         print(f"Error scanning browse tree: {e}")
 
-    # Parent path for 'Up' button
     parent_path = None
     if abs_target != BASE_STORAGE:
         parent_path = os.path.dirname(abs_target).replace('\\', '/')

@@ -273,6 +273,43 @@
       user-select: none;
     }
 
+    .play-badge {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    }
+
+    .file-card:hover .play-badge {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.12);
+    }
+
+    .video-tag {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
     .card-info {
       padding: 12px 14px;
       display: flex;
@@ -300,36 +337,42 @@
     }
 
     .download-pill {
-      background: rgba(255, 255, 255, 0.06);
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 11px;
-      color: #58a6ff;
-      border: 1px solid rgba(88, 166, 255, 0.2);
-      text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s;
     }
 
     .download-pill:hover {
-      background: rgba(88, 166, 255, 0.15);
+      background: var(--accent);
+      color: #fff;
     }
 
-    /* Empty & Loading States */
+    /* Empty state */
     .empty-state {
+      padding: 80px 20px;
       text-align: center;
-      padding: 60px 20px;
       color: var(--text-muted);
     }
 
-    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.8;
+    }
 
     /* Password Modal */
     .pw-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(10, 11, 13, 0.95);
+      background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(16px);
       z-index: 1000;
       display: flex;
@@ -339,14 +382,14 @@
     }
 
     .pw-card {
-      background: #161b22;
+      background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px;
-      max-width: 380px;
+      border-radius: var(--radius);
+      padding: 32px 28px;
       width: 100%;
+      max-width: 380px;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
     }
 
     .pw-icon { font-size: 44px; margin-bottom: 16px; }
@@ -367,8 +410,9 @@
     .lightbox {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.92);
+      background: rgba(0, 0, 0, 0.94);
       backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       z-index: 2000;
       display: none;
       flex-direction: column;
@@ -398,6 +442,30 @@
       max-height: 85vh;
       border-radius: 8px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      outline: none;
+    }
+
+    .video-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     @media (max-width: 600px) {
@@ -477,9 +545,9 @@
   <!-- Lightbox Media Viewer -->
   <div class="lightbox" id="mediaLightbox">
     <div class="lb-header">
-      <span id="lbTitle" style="font-weight: 600; font-size: 14px;">Preview</span>
+      <span id="lbTitle" style="font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;">Preview</span>
       <div style="display: flex; gap: 8px;">
-        <a id="lbDownloadBtn" href="#" class="btn btn-primary" download>Download</a>
+        <a id="lbDownloadBtn" href="#" class="btn btn-primary" download>Download Asal</a>
         <button class="btn" onclick="closeLightbox()">Tutup</button>
       </div>
     </div>
@@ -494,6 +562,7 @@
     let rawItems = [];
     let currentPassword = '';
     let folderNames = [];
+    let videoPollTimer = null;
 
     function formatSize(bytes) {
       if (!bytes || bytes === 0) return '--';
@@ -585,7 +654,15 @@
           thumbUrl = `/api/share/${shareToken}/thumb?path=${encodeURIComponent(item.rel_path)}&pwd=${encodeURIComponent(currentPassword)}`;
           iconHtml = `<img src="${thumbUrl}" alt="${item.name}" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'type-icon\\'>🖼️</div>';"/>`;
         } else if (item.type === 'video') {
-          iconHtml = '<div class="type-icon">🎬</div>';
+          thumbUrl = `/api/share/${shareToken}/thumb?path=${encodeURIComponent(item.rel_path)}&pwd=${encodeURIComponent(currentPassword)}`;
+          const extName = (item.name.split('.').pop() || 'VIDEO').toUpperCase();
+          iconHtml = `
+            <img src="${thumbUrl}" alt="${item.name}" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'type-icon\\'>🎬</div>';"/>
+            <div class="play-badge">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="white"><polygon points="7 4 20 12 7 20 7 4"/></svg>
+            </div>
+            <span class="video-tag">${extName}</span>
+          `;
         } else if (item.type === 'audio') {
           iconHtml = '<div class="type-icon">🎵</div>';
         } else if (item.type === 'archive') {
@@ -638,27 +715,72 @@
     }
 
     function openMediaPreview(name, relPath, type) {
+      if (videoPollTimer) {
+        clearInterval(videoPollTimer);
+        videoPollTimer = null;
+      }
+
       const decodedName = decodeURIComponent(name);
       const decodedPath = decodeURIComponent(relPath);
-      const fileUrl = `/api/share/${shareToken}/download?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`;
+      const downloadUrl = `/api/share/${shareToken}/download?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`;
 
       if (type === 'image') {
         document.getElementById('lbTitle').textContent = decodedName;
-        document.getElementById('lbDownloadBtn').href = fileUrl;
-        document.getElementById('lbStage').innerHTML = `<img src="${fileUrl}" alt="${decodedName}"/>`;
+        document.getElementById('lbDownloadBtn').href = downloadUrl;
+        document.getElementById('lbStage').innerHTML = `<img src="${downloadUrl}" alt="${decodedName}"/>`;
         document.getElementById('mediaLightbox').classList.add('active');
       } else if (type === 'video') {
         document.getElementById('lbTitle').textContent = decodedName;
-        document.getElementById('lbDownloadBtn').href = fileUrl;
-        document.getElementById('lbStage').innerHTML = `<video src="${fileUrl}" controls autoplay></video>`;
+        document.getElementById('lbDownloadBtn').href = downloadUrl;
+        document.getElementById('lbStage').innerHTML = `
+          <div class="video-loader">
+            <div class="spinner"></div>
+            <p style="margin-top: 16px; font-weight: 600; font-size: 15px;">Menyediakan Video...</p>
+            <p id="videoStatusMsg" style="font-size: 12.5px; color: var(--text-muted); margin-top: 6px;">Memeriksa format video...</p>
+          </div>
+        `;
         document.getElementById('mediaLightbox').classList.add('active');
+
+        const streamUrl = `/api/share/${shareToken}/stream?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`;
+
+        const checkStatus = async () => {
+          try {
+            const res = await fetch(`/api/share/${shareToken}/video_status?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`);
+            if (!res.ok) {
+              document.getElementById('lbStage').innerHTML = `<video src="${streamUrl}" controls autoplay playsinline></video>`;
+              return;
+            }
+            const data = await res.json();
+            if (data.ready) {
+              if (videoPollTimer) {
+                clearInterval(videoPollTimer);
+                videoPollTimer = null;
+              }
+              document.getElementById('lbStage').innerHTML = `<video src="${streamUrl}" controls autoplay playsinline></video>`;
+            } else {
+              const msg = document.getElementById('videoStatusMsg');
+              if (msg) {
+                msg.textContent = '⚡ Mengoptimumkan format video untuk pelayar web (H.264 MP4)... Sila tunggu sebentar.';
+              }
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        };
+
+        checkStatus();
+        videoPollTimer = setInterval(checkStatus, 2000);
       } else {
         // Direct download for documents / others
-        window.location.href = fileUrl;
+        window.location.href = downloadUrl;
       }
     }
 
     function closeLightbox() {
+      if (videoPollTimer) {
+        clearInterval(videoPollTimer);
+        videoPollTimer = null;
+      }
       const lb = document.getElementById('mediaLightbox');
       lb.classList.remove('active');
       const stage = document.getElementById('lbStage');
