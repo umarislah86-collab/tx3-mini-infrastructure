@@ -493,6 +493,7 @@
     let currentSubpath = '';
     let rawItems = [];
     let currentPassword = '';
+    let folderNames = [];
 
     function formatSize(bytes) {
       if (!bytes || bytes === 0) return '--';
@@ -522,6 +523,7 @@
         const data = await res.json();
         document.getElementById('passwordModal').style.display = 'none';
         document.getElementById('folderTitle').textContent = data.share_title || 'Shared Folder';
+        if (data.folder_names) folderNames = data.folder_names;
 
         // Setup ZIP button
         const zipBtn = document.getElementById('downloadZipBtn');
@@ -550,9 +552,13 @@
         parts.forEach((p, idx) => {
           accumulated += (idx === 0 ? '' : '/') + p;
           const isLast = idx === parts.length - 1;
+          let displayName = p;
+          if (idx === 0 && folderNames.length > 1 && !isNaN(parseInt(p))) {
+            displayName = folderNames[parseInt(p)] || p;
+          }
           html += `
             <span class="crumb-sep">/</span>
-            <span class="crumb-item ${isLast ? 'active' : ''}" onclick="loadFolder('${accumulated}')">${p}</span>
+            <span class="crumb-item ${isLast ? 'active' : ''}" onclick="loadFolder('${accumulated}')">${displayName}</span>
           `;
         });
       }

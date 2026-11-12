@@ -1,8 +1,7 @@
 """
-TX3 Shared Folders Engine (Read-Only Cloud Sharing)
-Allows sharing any folder inside /shares with a unique token,
-optional password protection, expiry, in-browser media previews,
-file downloads, and zip downloads.
+TX3 Shared Folders Engine (Multi-Choice & Windows Explorer Tree Browser)
+Supports single or multiple selected folders, virtual root mapping,
+interactive deep directory browsing, zip downloads, and password protection.
 """
 
 import os
@@ -51,26 +50,55 @@ def init_db():
 
 init_db()
 
-def create_share(folder_path, title=None, password=None, expires_days=0, allow_zip=True):
-    abs_path = os.path.abspath(folder_path)
-    if not os.path.exists(abs_path) or not os.path.isdir(abs_path):
-        raise ValueError(f"Folder tidak wujud: {folder_path}")
+def get_share_folder_paths(share):
+    raw = share.get('folder_path', '')
+    if raw.startswith('['):
+        try:
+            paths = json.loads(raw)
+            if isinstance(paths, list):
+                return [p for p in paths if os.path.exists(p)]
+        except Exception:
+            pass
+    if os.path.exists(raw):
+        return [raw]
+    return []
+
+def create_share(folder_paths, title=None, password=None, expires_days=0, allow_zip=True):
+    if isinstance(folder_paths, str):
+        folder_paths = [folder_paths]
+
+    valid_paths = []
+    for fp in folder_paths:
+        abs_p = os.path.abspath(fp)
+        # Ensure inside /shares
+        try:
+            if os.path.commonpath([BASE_STORAGE, abs_p]) == BASE_STORAGE and os.path.isdir(abs_p):
+                valid_paths.append(abs_p)
+        except Exception:
+            continue
+
+    if not valid_paths:
+        raise ValueError("Tiada folder sah yang dipilih dalam /shares.")
 
     # Generate short unique token
     random_bytes = os.urandom(8)
     share_token = f"s_{hashlib.sha256(random_bytes + str(time.time()).encode()).hexdigest()[:10]}"
 
     if not title:
-        title = os.path.basename(abs_path.rstrip('/\\')) or "Shared Folder"
+        if len(valid_paths) == 1:
+            title = os.path.basename(valid_paths[0].rstrip('/\\')) or "Shared Folder"
+        else:
+            title = f"Perkongsian {len(valid_paths)} Folder"
 
     pwd_hash = hashlib.sha256(password.strip().encode()).hexdigest() if (password and password.strip()) else None
     expires_at = int(time.time()) + (int(expires_days) * 86400) if expires_days and int(expires_days) > 0 else 0
+    stored_path = json.dumps(valid_paths) if len(valid_paths) > 1 else valid_paths[0]
 
     with get_db() as conn:
         conn.execute('''
             INSERT INTO shares (share_token, folder_path, title, password_hash, expires_at, allow_zip, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (share_token, abs_path, title, pwd_hash, expires_at, 1 if allow_zip else 0, int(time.time())))
+        ''', (share_token, stored_path, title, pwd_hash, expires_at, 1 if allow_zip else 0, int(time.time())))
         conn.commit()
 
     return get_share(share_token)
@@ -91,6 +119,7 @@ def list_all_shares():
             d['is_expired'] = (d['expires_at'] > 0 and d['expires_at'] < now)
             d['has_password'] = bool(d['password_hash'])
             del d['password_hash']
+            d['folder_count'] = len(get_share_folder_paths(d))
             result.append(d)
         return result
 
@@ -103,6 +132,7 @@ def get_share(share_token):
         now = time.time()
         d['is_expired'] = (d['expires_at'] > 0 and d['expires_at'] < now)
         d['has_password'] = bool(d['password_hash'])
+        d['folder_paths'] = get_share_folder_paths(d)
         return d
 
 def record_view(share_token):
@@ -129,31 +159,83 @@ def hmac_compare(a, b):
     return hmac.compare_digest(a, b)
 
 def resolve_shared_path(share, subpath=''):
-    base_folder = os.path.abspath(share['folder_path'])
+    """
+    Resolves virtual subpath into actual filesystem path.
+    For single folder: subpath is relative to folder_path.
+    For multi folder:
+       subpath = "" -> virtual root (returns None)
+       subpath = "idx" -> root of folder_paths[idx]
+       subpath = "idx/rest/of/path" -> folder_paths[idx]/rest/of/path
+    """
+    paths = share.get('folder_paths') or get_share_folder_paths(share)
+    if not paths:
+        return None
+
     clean_sub = subpath.strip('/').replace('\\', '/')
-    target_abs = os.path.abspath(os.path.join(base_folder, clean_sub))
 
-    # Security check: MUST be inside base_folder!
-    try:
-        common = os.path.commonpath([base_folder, target_abs])
-        if common != base_folder:
+    if len(paths) == 1:
+        base_folder = os.path.abspath(paths[0])
+        target_abs = os.path.abspath(os.path.join(base_folder, clean_sub))
+        try:
+            if os.path.commonpath([base_folder, target_abs]) != base_folder:
+                return None
+        except ValueError:
             return None
-    except ValueError:
-        return None
-
-    if not os.path.exists(target_abs):
-        return None
-
-    return target_abs
+        return target_abs if os.path.exists(target_abs) else None
+    else:
+        # Multi-folder share
+        if not clean_sub:
+            return None  # Virtual root
+        parts = clean_sub.split('/', 1)
+        try:
+            folder_idx = int(parts[0])
+            if folder_idx < 0 or folder_idx >= len(paths):
+                return None
+            base_folder = os.path.abspath(paths[folder_idx])
+            sub_part = parts[1] if len(parts) > 1 else ''
+            target_abs = os.path.abspath(os.path.join(base_folder, sub_part))
+            if os.path.commonpath([base_folder, target_abs]) != base_folder:
+                return None
+            return target_abs if os.path.exists(target_abs) else None
+        except (ValueError, IndexError):
+            return None
 
 def list_folder_contents(share, subpath=''):
+    paths = share.get('folder_paths') or get_share_folder_paths(share)
+    if not paths:
+        return None
+
+    clean_sub = subpath.strip('/').replace('\\', '/')
+
+    # Multi-folder root: display the chosen folders
+    if len(paths) > 1 and not clean_sub:
+        items = []
+        for idx, fp in enumerate(paths):
+            name = os.path.basename(fp.rstrip('/\\')) or f"Folder {idx+1}"
+            items.append({
+                'name': name,
+                'rel_path': str(idx),
+                'is_dir': True,
+                'type': 'folder',
+                'size': 0,
+                'mtime': int(os.path.getmtime(fp)) if os.path.exists(fp) else 0,
+                'mime': 'application/octet-stream'
+            })
+        return {
+            'share_title': share['title'],
+            'current_subpath': '',
+            'is_virtual_root': True,
+            'folder_names': [os.path.basename(p.rstrip('/' + chr(92))) for p in paths],
+            'items': items,
+            'allow_zip': bool(share.get('allow_zip', 1))
+        }
+
+    # Otherwise resolve directory
     target_abs = resolve_shared_path(share, subpath)
     if not target_abs or not os.path.isdir(target_abs):
         return None
 
-    base_folder = os.path.abspath(share['folder_path'])
     items = []
-
     try:
         entries = sorted(os.scandir(target_abs), key=lambda e: (not e.is_dir(), e.name.lower()))
         for entry in entries:
@@ -161,9 +243,16 @@ def list_folder_contents(share, subpath=''):
             if name in IGNORED_NAMES or name.startswith('.'):
                 continue
 
-            rel_to_base = os.path.relpath(entry.path, base_folder).replace('\\', '/')
+            # Compute virtual rel_path
+            if len(paths) == 1:
+                rel_to_base = os.path.relpath(entry.path, paths[0]).replace('\\', '/')
+            else:
+                parts = clean_sub.split('/', 1)
+                idx = parts[0]
+                rel_to_sub = os.path.relpath(entry.path, paths[int(idx)]).replace('\\', '/')
+                rel_to_base = f"{idx}/{rel_to_sub}".replace('\\', '/')
+
             is_dir = entry.is_dir()
-            
             size = 0
             mtime = 0
             try:
@@ -205,26 +294,74 @@ def list_folder_contents(share, subpath=''):
 
     return {
         'share_title': share['title'],
-        'current_subpath': subpath.strip('/'),
+        'current_subpath': clean_sub,
+        'is_virtual_root': False,
+        'folder_names': [os.path.basename(p.rstrip('/' + chr(92))) for p in paths],
         'items': items,
         'allow_zip': bool(share.get('allow_zip', 1))
     }
 
-def browse_storage_tree(root_path='/shares/3TB-ext'):
-    """Used by Admin to pick a folder to share"""
-    abs_root = os.path.abspath(root_path)
-    if not os.path.exists(abs_root) or not os.path.isdir(abs_root):
-        return []
+def browse_directory_tree(req_path='/shares/3TB-ext'):
+    """
+    Windows Explorer style backend: returns subfolders in the requested directory,
+    along with clickable breadcrumb trail.
+    """
+    if not req_path or req_path in ('/', '\\', 'root'):
+        req_path = BASE_STORAGE
 
-    result = []
+    abs_target = os.path.abspath(req_path)
+    # Security boundary: must stay within /shares
     try:
-        for entry in sorted(os.scandir(abs_root), key=lambda e: e.name.lower()):
+        if os.path.commonpath([BASE_STORAGE, abs_target]) != BASE_STORAGE:
+            abs_target = BASE_STORAGE
+    except ValueError:
+        abs_target = BASE_STORAGE
+
+    if not os.path.exists(abs_target) or not os.path.isdir(abs_target):
+        abs_target = BASE_STORAGE
+
+    # Build breadcrumbs
+    # e.g. /shares/3TB-ext/Pictures/Japan -> [ { name: "Storage", path: "/shares" }, { name: "3TB-ext", ... } ]
+    rel_from_base = os.path.relpath(abs_target, BASE_STORAGE).replace('\\', '/')
+    crumbs = [{'name': 'TX3-Storage', 'path': BASE_STORAGE}]
+    
+    if rel_from_base != '.':
+        parts = rel_from_base.split('/')
+        accum = BASE_STORAGE
+        for p in parts:
+            accum = os.path.join(accum, p)
+            crumbs.append({'name': p, 'path': accum.replace('\\', '/')})
+
+    # List subfolders
+    subfolders = []
+    try:
+        entries = sorted(os.scandir(abs_target), key=lambda e: e.name.lower())
+        for entry in entries:
             if entry.is_dir() and entry.name not in IGNORED_NAMES and not entry.name.startswith('.'):
-                result.append({
+                # Count children subfolders
+                child_count = 0
+                try:
+                    for _ in os.scandir(entry.path):
+                        child_count += 1
+                except Exception:
+                    pass
+                subfolders.append({
                     'name': entry.name,
-                    'abs_path': entry.path,
-                    'rel_path': os.path.relpath(entry.path, '/shares').replace('\\', '/')
+                    'abs_path': entry.path.replace('\\', '/'),
+                    'item_count': child_count
                 })
-    except Exception:
-        pass
-    return result
+    except Exception as e:
+        print(f"Error scanning browse tree: {e}")
+
+    # Parent path for 'Up' button
+    parent_path = None
+    if abs_target != BASE_STORAGE:
+        parent_path = os.path.dirname(abs_target).replace('\\', '/')
+
+    return {
+        'current_path': abs_target.replace('\\', '/'),
+        'display_path': 'Z:\\' + os.path.relpath(abs_target, BASE_STORAGE).replace('/', '\\').replace('.', ''),
+        'parent_path': parent_path,
+        'breadcrumbs': crumbs,
+        'folders': subfolders
+    }

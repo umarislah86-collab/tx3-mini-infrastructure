@@ -1,4 +1,5 @@
 import sharing
+import io
 import os
 import sys
 import re
@@ -963,13 +964,13 @@ class VaultHandler(BaseHTTPRequestHandler):
         if pathname == '/api/shares/create':
             try:
                 body = read_json_body(self)
-                folder_path = body.get('folder_path', '')
+                folder_paths = body.get('folder_paths') or body.get('folder_path', '')
                 title = body.get('title', '')
                 password = body.get('password', '')
                 expires_days = body.get('expires_days', 0)
 
                 new_share = sharing.create_share(
-                    folder_path=folder_path,
+                    folder_paths=folder_paths,
                     title=title,
                     password=password,
                     expires_days=expires_days
@@ -1460,31 +1461,44 @@ class VaultHandler(BaseHTTPRequestHandler):
 
                 if action == 'zip':
                     subpath = params.get('subpath', [''])[0]
-                    target_abs = sharing.resolve_shared_path(share, subpath)
-                    if not target_abs or not os.path.isdir(target_abs):
-                        self.send_response(404)
-                        self.send_cors()
-                        self.end_headers()
-                        return
-
+                    paths = share.get('folder_paths') or sharing.get_share_folder_paths(share)
                     import zipfile
                     zip_buffer = io.BytesIO()
+
                     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-                        for root, _, files in os.walk(target_abs):
-                            for fn in files:
-                                if fn in sharing.IGNORED_NAMES or fn.startswith('.'):
-                                    continue
-                                file_path = os.path.join(root, fn)
-                                arcname = os.path.relpath(file_path, target_abs)
-                                zf.write(file_path, arcname)
+                        if len(paths) > 1 and not subpath.strip('/'):
+                            for fp in paths:
+                                f_name = os.path.basename(fp.rstrip('/' + chr(92)))
+                                for root, _, files in os.walk(fp):
+                                    for fn in files:
+                                        if fn in sharing.IGNORED_NAMES or fn.startswith('.'):
+                                            continue
+                                        file_path = os.path.join(root, fn)
+                                        rel_f = os.path.relpath(file_path, fp)
+                                        arcname = os.path.join(f_name, rel_f)
+                                        zf.write(file_path, arcname)
+                            folder_name = share.get('title') or "shared_folders"
+                        else:
+                            target_abs = sharing.resolve_shared_path(share, subpath)
+                            if not target_abs or not os.path.isdir(target_abs):
+                                self.send_response(404)
+                                self.send_cors()
+                                self.end_headers()
+                                return
+                            for root, _, files in os.walk(target_abs):
+                                for fn in files:
+                                    if fn in sharing.IGNORED_NAMES or fn.startswith('.'):
+                                        continue
+                                    file_path = os.path.join(root, fn)
+                                    arcname = os.path.relpath(file_path, target_abs)
+                                    zf.write(file_path, arcname)
+                            folder_name = os.path.basename(target_abs.rstrip('/' + chr(92))) or "shared_files"
 
                     zip_data = zip_buffer.getvalue()
-                    folder_name = os.path.basename(target_abs.rstrip('/' + chr(92))) or "shared_files"
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/zip')
                     self.send_header('Content-Length', str(len(zip_data)))
-                    safe_fn = urllib.parse.quote(f"{folder_name}.zip")
-                    self.send_header('Content-Disposition', f'attachment; filename*=UTF-8''{safe_fn}')
+                    self.send_header('Content-Disposition', f'attachment; filename="{folder_name}.zip"')
                     self.send_cors()
                     self.end_headers()
                     if not head_only:
@@ -1494,6 +1508,18 @@ class VaultHandler(BaseHTTPRequestHandler):
         if pathname == '/api/shares/all':
             shares = sharing.list_all_shares()
             payload = json.dumps({'shares': shares}).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_cors()
+            self.end_headers()
+            if not head_only:
+                self.wfile.write(payload)
+            return
+
+        if pathname == '/api/shares/browse':
+            req_path = params.get('path', ['/shares/3TB-ext'])[0]
+            data = sharing.browse_directory_tree(req_path)
+            payload = json.dumps(data).encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_cors()
@@ -1932,13 +1958,13 @@ class VaultHandler(BaseHTTPRequestHandler):
         if pathname == '/api/shares/create':
             try:
                 body = read_json_body(self)
-                folder_path = body.get('folder_path', '')
+                folder_paths = body.get('folder_paths') or body.get('folder_path', '')
                 title = body.get('title', '')
                 password = body.get('password', '')
                 expires_days = body.get('expires_days', 0)
 
                 new_share = sharing.create_share(
-                    folder_path=folder_path,
+                    folder_paths=folder_paths,
                     title=title,
                     password=password,
                     expires_days=expires_days
