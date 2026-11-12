@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TX3 Cloud Share Manager</title>
+  <meta name="theme-color" content="#0d1117">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --accent: #238636;
+      --accent-hover: #2ea043;
+      --blue: #1f6feb;
+      --danger: #da3633;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 24px 20px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-wrap { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1f6feb, #238636);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .title { font-size: 20px; font-weight: 700; }
+    .subtitle { font-size: 13px; color: var(--text-muted); }
+
+    .btn {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover { background: #1f242c; border-color: rgba(255, 255, 255, 0.2); }
+    .btn-success { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-success:hover { background: var(--accent-hover); }
+    .btn-danger { color: #f85149; }
+    .btn-danger:hover { background: rgba(248, 81, 73, 0.1); border-color: var(--danger); }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Table / List */
+    .shares-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .share-row {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .share-row-left { display: flex; flex-direction: column; gap: 4px; }
+    .share-name { font-size: 15px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .share-path { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+    .share-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-pw { background: rgba(227, 179, 65, 0.15); color: #e3b341; border: 1px solid rgba(227, 179, 65, 0.3); }
+    .badge-open { background: rgba(46, 160, 67, 0.15); color: #3fb950; border: 1px solid rgba(46, 160, 67, 0.3); }
+
+    .share-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* Modal Form */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-width: 460px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .form-input, .form-select {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--blue); }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="brand-wrap">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="title">TX3 Cloud Share Manager</div>
+        <div class="subtitle">Kongsi folder peribadi dengan pautan read-only selamat</div>
+      </div>
+    </div>
+    <button class="btn btn-success" onclick="openCreateModal()">
+      <span>+ Cipta Pautan Baru</span>
+    </button>
+  </div>
+
+  <div class="grid-layout">
+    <div class="card">
+      <div class="card-title">
+        <span>📂 Senarai Folder Yang Sedang Dikongsi</span>
+        <button class="btn" style="margin-left: auto; padding: 4px 10px; font-size: 12px;" onclick="loadShares()">Refresh</button>
+      </div>
+      <div class="shares-list" id="sharesList">
+        <div class="empty-state">Memuatkan senarai perkongsian...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Modal -->
+  <div class="modal-overlay" id="createModal">
+    <div class="modal-card">
+      <h3 style="font-size: 18px; margin-bottom: 16px;">Cipta Pautan Folder Baru</h3>
+      <form onsubmit="handleCreateShare(event)">
+        <div class="form-group">
+          <label>Pilih Folder (dari 3TB-ext):</label>
+          <select id="folderSelect" class="form-select" onchange="autoFillTitle(this.value)" required>
+            <option value="">Memuatkan senarai folder...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nama / Tajuk Pautan:</label>
+          <input type="text" id="shareTitle" class="form-input" placeholder="contoh: Gambar Sendai & Trip Jepun" required>
+        </div>
+        <div class="form-group">
+          <label>Kata Laluan (Optional - Kosongkan jika terbuka):</label>
+          <input type="password" id="sharePassword" class="form-input" placeholder="Kunci dengan kata laluan jika perlu">
+        </div>
+        <div class="form-group">
+          <label>Tempoh Luput:</label>
+          <select id="expiresSelect" class="form-select">
+            <option value="0">Kekal Selamanya (Tiada Tamat Tempoh)</option>
+            <option value="1">1 Hari</option>
+            <option value="3">3 Hari</option>
+            <option value="7">7 Hari</option>
+            <option value="30">30 Hari</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn" onclick="closeCreateModal()">Batal</button>
+          <button type="submit" class="btn btn-success">Cipta Pautan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const origin = window.location.origin;
+
+    async function loadShares() {
+      const container = document.getElementById('sharesList');
+      try {
+        const res = await fetch('/api/shares/all');
+        const data = await res.json();
+        const shares = data.shares || [];
+
+        if (shares.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
+              <p>Belum ada folder yang dikongsi. Klik butang di atas untuk cipta pautan pertama!</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = shares.map(s => {
+          const publicUrl = `${origin}/s/${s.share_token}`;
+          const isExpired = s.is_expired;
+          const statusBadge = isExpired 
+            ? '<span class="badge" style="background: rgba(248,81,73,0.15); color: #f85149;">Tamat Tempoh</span>'
+            : (s.has_password 
+                ? '<span class="badge badge-pw">🔒 Ada Password</span>' 
+                : '<span class="badge badge-open">🌐 Awam</span>');
+
+          return `
+            <div class="share-row">
+              <div class="share-row-left">
+                <div class="share-name">
+                  <span>📁 ${s.title}</span>
+                  ${statusBadge}
+                </div>
+                <div class="share-path">${s.folder_path}</div>
+                <div class="share-meta">
+                  <span>👀 ${s.views_count} tontonan</span>
+                  <span>⬇️ ${s.downloads_count} muat turun</span>
+                  <span>🔗 <a href="${publicUrl}" target="_blank" style="color: #58a6ff; text-decoration: none;">/s/${s.share_token}</a></span>
+                </div>
+              </div>
+              <div class="share-actions">
+                <button class="btn" onclick="copyLink('${publicUrl}')" title="Salin pautan">
+                  <span>📋 Salin Pautan</span>
+                </button>
+                <button class="btn btn-danger" onclick="deleteShare('${s.share_token}', '${s.title}')" title="Padam perkongsian">
+                  <span>Hapus</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="empty-state">Gagal memuatkan: ${err.message}</div>`;
+      }
+    }
+
+    async function loadFolderOptions() {
+      const select = document.getElementById('folderSelect');
+      try {
+        const res = await fetch('/api/shares/tree');
+        const data = await res.json();
+        const folders = data.folders || [];
+        select.innerHTML = '<option value="">-- Sila Pilih Folder --</option>' + 
+          folders.map(f => `<option value="${f.abs_path}">${f.name} (${f.rel_path})</option>`).join('');
+      } catch (err) {
+        select.innerHTML = '<option value="">Gagal memuatkan folder</option>';
+      }
+    }
+
+    function autoFillTitle(path) {
+      if (!path) return;
+      const titleInput = document.getElementById('shareTitle');
+      if (!titleInput.value) {
+        const parts = path.replace(/\\/g, '/').split('/').filter(Boolean);
+        titleInput.value = parts[parts.length - 1] || 'Shared Folder';
+      }
+    }
+
+    function openCreateModal() {
+      document.getElementById('createModal').style.display = 'flex';
+      loadFolderOptions();
+    }
+
+    function closeCreateModal() {
+      document.getElementById('createModal').style.display = 'none';
+    }
+
+    async function handleCreateShare(e) {
+      e.preventDefault();
+      const folder_path = document.getElementById('folderSelect').value;
+      const title = document.getElementById('shareTitle').value.trim();
+      const password = document.getElementById('sharePassword').value;
+      const expires_days = document.getElementById('expiresSelect').value;
+
+      try {
+        const res = await fetch('/api/shares/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder_path, title, password, expires_days })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeCreateModal();
+          loadShares();
+          const publicUrl = `${origin}/s/${data.share.share_token}`;
+          prompt('Pautan berjaya dicipta! Sila salin link ini untuk kongsikan kepada kawan anda:', publicUrl);
+        } else {
+          alert('Ralat: ' + (data.error || 'Gagal cipta'));
+        }
+      } catch (err) {
+        alert('Ralat sambungan: ' + err.message);
+      }
+    }
+
+    async function deleteShare(token, title) {
+      if (!confirm(`Padam pautan kongsi untuk "${title}"? Orang luar tidak akan dapat akses lagi.`)) return;
+      try {
+        const res = await fetch(`/api/shares/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ share_token: token })
+        });
+        const data = await res.json();
+        if (data.success) {
+          loadShares();
+        } else {
+          alert('Gagal padam: ' + (data.error || 'Unknown'));
+        }
+      } catch (err) {
+        alert('Ralat: ' + err.message);
+      }
+    }
+
+    function copyLink(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Pautan disalin ke clipboard:\n' + url);
+      }).catch(() => {
+        prompt('Salin pautan:', url);
+      });
+    }
+
+    // Initial load
+    loadShares();
+  </script>
+</body>
+</html>

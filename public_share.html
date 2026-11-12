@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TX3 Cloud Share</title>
+  <meta name="theme-color" content="#0e1117">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0e1117;
+      --bg-card: #161b22;
+      --bg-card-hover: #1f242c;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: #58a6ff;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #2f81f7;
+      --accent-glow: rgba(47, 129, 247, 0.15);
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    .header {
+      background: rgba(22, 27, 34, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1f6feb, #238636);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(31, 111, 235, 0.3);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      background: var(--accent-glow);
+      color: #58a6ff;
+      border: 1px solid rgba(88, 166, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: #388bfd;
+    }
+
+    /* Subheader & Breadcrumbs */
+    .subheader {
+      padding: 20px 24px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .folder-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .folder-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .crumb-item {
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .crumb-item:hover { color: var(--text); }
+    .crumb-item.active { color: #58a6ff; font-weight: 600; }
+    .crumb-sep { opacity: 0.4; }
+
+    /* Search & Filter Toolbar */
+    .toolbar {
+      padding: 0 24px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      max-width: 360px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px 8px 36px;
+      color: var(--text);
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .search-box input:focus { border-color: var(--border-focus); }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: var(--text-muted);
+      stroke-width: 2;
+    }
+
+    .stats-info {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Main Container */
+    .main-content {
+      flex: 1;
+      padding: 0 24px 40px;
+    }
+
+    /* Files Grid */
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
+    }
+
+    .file-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .file-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .card-thumb {
+      height: 130px;
+      background: #0d1117;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .file-card:hover .card-thumb img {
+      transform: scale(1.05);
+    }
+
+    .type-icon {
+      font-size: 42px;
+      user-select: none;
+    }
+
+    .card-info {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .card-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: auto;
+    }
+
+    .download-pill {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #58a6ff;
+      border: 1px solid rgba(88, 166, 255, 0.2);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .download-pill:hover {
+      background: rgba(88, 166, 255, 0.15);
+    }
+
+    /* Empty & Loading States */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* Password Modal */
+    .pw-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 11, 13, 0.95);
+      backdrop-filter: blur(16px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .pw-card {
+      background: #161b22;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .pw-icon { font-size: 44px; margin-bottom: 16px; }
+    .pw-input {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 15px;
+      margin: 16px 0;
+      outline: none;
+    }
+    .pw-input:focus { border-color: var(--accent); }
+
+    /* Media Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(20px);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+    }
+
+    .lightbox.active { display: flex; }
+
+    .lb-header {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .lb-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .lb-stage img, .lb-stage video {
+      max-width: 100%;
+      max-height: 85vh;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+
+    @media (max-width: 600px) {
+      .header, .subheader, .toolbar, .main-content { padding-left: 16px; padding-right: 16px; }
+      .files-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .folder-title { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top App Bar -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <div>
+        <span class="brand-title">TX3 Cloud Share</span>
+        <span class="brand-badge">Read-Only</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a id="downloadZipBtn" class="btn btn-primary" href="#" style="display: none;" title="Download all files as ZIP">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Download Semua (.ZIP)</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Subheader & Breadcrumbs -->
+  <div class="subheader">
+    <div class="folder-title-wrap">
+      <div class="folder-title">
+        <span id="headerIcon">📁</span>
+        <span id="folderTitle">Memuatkan...</span>
+      </div>
+      <div class="breadcrumbs" id="breadcrumbs">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Stats Toolbar -->
+  <div class="toolbar">
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Cari fail dalam folder ini..." oninput="handleSearch(this.value)">
+    </div>
+    <div class="stats-info" id="statsInfo">
+      0 item
+    </div>
+  </div>
+
+  <!-- Main Files Grid -->
+  <main class="main-content">
+    <div class="files-grid" id="filesGrid">
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <p>Memuatkan kandungan folder...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Password Modal -->
+  <div class="pw-overlay" id="passwordModal" style="display: none;">
+    <div class="pw-card">
+      <div class="pw-icon">🔒</div>
+      <h3>Folder Dilindungi</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Folder ini dikunci dengan kata laluan oleh pemilik.</p>
+      <form onsubmit="handlePasswordSubmit(event)">
+        <input type="password" id="sharePasswordInput" class="pw-input" placeholder="Masukkan Kata Laluan" autofocus required />
+        <div id="pwError" style="color: #f85149; font-size: 13px; margin-bottom: 12px; display: none;">Kata laluan tidak tepat.</div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Buka Folder</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox Media Viewer -->
+  <div class="lightbox" id="mediaLightbox">
+    <div class="lb-header">
+      <span id="lbTitle" style="font-weight: 600; font-size: 14px;">Preview</span>
+      <div style="display: flex; gap: 8px;">
+        <a id="lbDownloadBtn" href="#" class="btn btn-primary" download>Download</a>
+        <button class="btn" onclick="closeLightbox()">Tutup</button>
+      </div>
+    </div>
+    <div class="lb-stage" id="lbStage"></div>
+  </div>
+
+  <script>
+    const urlParts = window.location.pathname.split('/');
+    // Expected path: /s/<token>
+    const shareToken = urlParts[2] || '';
+    let currentSubpath = '';
+    let rawItems = [];
+    let currentPassword = '';
+
+    function formatSize(bytes) {
+      if (!bytes || bytes === 0) return '--';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    async function loadFolder(subpath = '') {
+      currentSubpath = subpath;
+      const grid = document.getElementById('filesGrid');
+      grid.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><p>Memuatkan fail...</p></div>';
+
+      const url = `/api/share/${shareToken}/list?subpath=${encodeURIComponent(subpath)}&pwd=${encodeURIComponent(currentPassword)}`;
+      try {
+        const res = await fetch(url);
+        if (res.status === 401) {
+          document.getElementById('passwordModal').style.display = 'flex';
+          return;
+        }
+        if (res.status === 404) {
+          grid.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>Pautan Tidak Dijumpai</h3><p>Pautan perkongsian ini mungkin telah tamat tempoh atau dipadam.</p></div>';
+          return;
+        }
+
+        const data = await res.json();
+        document.getElementById('passwordModal').style.display = 'none';
+        document.getElementById('folderTitle').textContent = data.share_title || 'Shared Folder';
+
+        // Setup ZIP button
+        const zipBtn = document.getElementById('downloadZipBtn');
+        if (data.allow_zip) {
+          zipBtn.href = `/api/share/${shareToken}/zip?subpath=${encodeURIComponent(subpath)}&pwd=${encodeURIComponent(currentPassword)}`;
+          zipBtn.style.display = 'inline-flex';
+        } else {
+          zipBtn.style.display = 'none';
+        }
+
+        rawItems = data.items || [];
+        renderBreadcrumbs(subpath);
+        renderFiles(rawItems);
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Ralat memuatkan: ${err.message}</p></div>`;
+      }
+    }
+
+    function renderBreadcrumbs(subpath) {
+      const bc = document.getElementById('breadcrumbs');
+      let html = `<span class="crumb-item ${!subpath ? 'active' : ''}" onclick="loadFolder('')">Root</span>`;
+      
+      if (subpath) {
+        const parts = subpath.split('/').filter(Boolean);
+        let accumulated = '';
+        parts.forEach((p, idx) => {
+          accumulated += (idx === 0 ? '' : '/') + p;
+          const isLast = idx === parts.length - 1;
+          html += `
+            <span class="crumb-sep">/</span>
+            <span class="crumb-item ${isLast ? 'active' : ''}" onclick="loadFolder('${accumulated}')">${p}</span>
+          `;
+        });
+      }
+      bc.innerHTML = html;
+    }
+
+    function renderFiles(items) {
+      const grid = document.getElementById('filesGrid');
+      document.getElementById('statsInfo').textContent = `${items.length} item`;
+
+      if (items.length === 0) {
+        grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="empty-icon">📂</div><p>Folder ini kosong.</p></div>';
+        return;
+      }
+
+      grid.innerHTML = items.map(item => {
+        let iconHtml = '';
+        let thumbUrl = '';
+        const downloadUrl = `/api/share/${shareToken}/download?path=${encodeURIComponent(item.rel_path)}&pwd=${encodeURIComponent(currentPassword)}`;
+
+        if (item.is_dir) {
+          iconHtml = '<div class="type-icon">📁</div>';
+        } else if (item.type === 'image') {
+          thumbUrl = `/api/share/${shareToken}/thumb?path=${encodeURIComponent(item.rel_path)}&pwd=${encodeURIComponent(currentPassword)}`;
+          iconHtml = `<img src="${thumbUrl}" alt="${item.name}" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'type-icon\\'>🖼️</div>';"/>`;
+        } else if (item.type === 'video') {
+          iconHtml = '<div class="type-icon">🎬</div>';
+        } else if (item.type === 'audio') {
+          iconHtml = '<div class="type-icon">🎵</div>';
+        } else if (item.type === 'archive') {
+          iconHtml = '<div class="type-icon">📦</div>';
+        } else {
+          iconHtml = '<div class="type-icon">📄</div>';
+        }
+
+        const clickHandler = item.is_dir 
+          ? `onclick="loadFolder('${item.rel_path}')"` 
+          : `onclick="openMediaPreview('${encodeURIComponent(item.name)}', '${encodeURIComponent(item.rel_path)}', '${item.type}')"`;
+
+        return `
+          <div class="file-card" ${clickHandler}>
+            <div class="card-thumb">
+              ${iconHtml}
+            </div>
+            <div class="card-info">
+              <div class="card-title" title="${item.name}">${item.name}</div>
+              <div class="card-meta">
+                <span>${item.is_dir ? 'Folder' : formatSize(item.size)}</span>
+                ${!item.is_dir ? `
+                  <a href="${downloadUrl}" class="download-pill" onclick="event.stopPropagation()" download title="Download fail">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Unduh</span>
+                  </a>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleSearch(query) {
+      const q = query.toLowerCase().trim();
+      if (!q) {
+        renderFiles(rawItems);
+        return;
+      }
+      const filtered = rawItems.filter(i => i.name.toLowerCase().includes(q));
+      renderFiles(filtered);
+    }
+
+    async function handlePasswordSubmit(e) {
+      e.preventDefault();
+      const pwd = document.getElementById('sharePasswordInput').value.trim();
+      currentPassword = pwd;
+      document.getElementById('pwError').style.display = 'none';
+      await loadFolder(currentSubpath);
+    }
+
+    function openMediaPreview(name, relPath, type) {
+      const decodedName = decodeURIComponent(name);
+      const decodedPath = decodeURIComponent(relPath);
+      const fileUrl = `/api/share/${shareToken}/download?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`;
+
+      if (type === 'image') {
+        document.getElementById('lbTitle').textContent = decodedName;
+        document.getElementById('lbDownloadBtn').href = fileUrl;
+        document.getElementById('lbStage').innerHTML = `<img src="${fileUrl}" alt="${decodedName}"/>`;
+        document.getElementById('mediaLightbox').classList.add('active');
+      } else if (type === 'video') {
+        document.getElementById('lbTitle').textContent = decodedName;
+        document.getElementById('lbDownloadBtn').href = fileUrl;
+        document.getElementById('lbStage').innerHTML = `<video src="${fileUrl}" controls autoplay></video>`;
+        document.getElementById('mediaLightbox').classList.add('active');
+      } else {
+        // Direct download for documents / others
+        window.location.href = fileUrl;
+      }
+    }
+
+    function closeLightbox() {
+      const lb = document.getElementById('mediaLightbox');
+      lb.classList.remove('active');
+      const stage = document.getElementById('lbStage');
+      const video = stage.querySelector('video');
+      if (video) video.pause();
+      stage.innerHTML = '';
+    }
+
+    // Start loading
+    if (shareToken) {
+      loadFolder('');
+    } else {
+      document.getElementById('filesGrid').innerHTML = '<div class="empty-state"><h3>Tiada token perkongsian.</h3></div>';
+    }
+  </script>
+</body>
+</html>
