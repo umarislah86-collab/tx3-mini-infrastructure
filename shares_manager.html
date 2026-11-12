@@ -98,57 +98,88 @@
       gap: 8px;
     }
 
-    /* Shares List */
-    .shares-list { display: flex; flex-direction: column; gap: 12px; }
+    /* Shares List Table */
+    .shares-table {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
     .share-row {
-      background: #0d1117;
+      background: rgba(255, 255, 255, 0.02);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 14px 18px;
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
+      gap: 16px;
+      transition: border-color 0.2s;
     }
 
-    .share-row-left { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 280px; }
-    .share-name { font-size: 15px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px; }
-    .share-path { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; word-break: break-all; }
+    .share-row:hover { border-color: rgba(255, 255, 255, 0.2); }
+
+    .share-row-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .share-name {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .share-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .share-meta {
       display: flex;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
+      gap: 14px;
       font-size: 12px;
       color: var(--text-muted);
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 7px;
-      border-radius: 6px;
       font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
-    .badge-pw { background: rgba(227, 179, 65, 0.15); color: #e3b341; border: 1px solid rgba(227, 179, 65, 0.3); }
-    .badge-open { background: rgba(46, 160, 67, 0.15); color: #3fb950; border: 1px solid rgba(46, 160, 67, 0.3); }
-    .badge-multi { background: rgba(88, 166, 255, 0.15); color: #58a6ff; border: 1px solid rgba(88, 166, 255, 0.3); }
+    .badge-open { background: rgba(35, 134, 54, 0.2); color: #3fb950; }
+    .badge-pw { background: rgba(210, 153, 34, 0.2); color: #d29922; }
+    .badge-multi { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
+    .badge-file { background: rgba(163, 113, 247, 0.18); color: #d2a8ff; }
 
-    .share-actions { display: flex; align-items: center; gap: 8px; }
+    .share-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-    /* Modal Form */
+    /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(12px);
-      z-index: 1000;
+      z-index: 100;
       display: none;
       align-items: center;
       justify-content: center;
@@ -158,18 +189,18 @@
     .modal-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      max-width: 680px;
+      border-radius: var(--radius);
       width: 100%;
+      max-width: 720px;
       max-height: 90vh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
       overflow: hidden;
     }
 
     .modal-header {
-      padding: 18px 24px;
+      padding: 16px 22px;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
@@ -177,161 +208,191 @@
     }
 
     .modal-body {
-      padding: 20px 24px;
+      padding: 20px 22px;
       overflow-y: auto;
-      flex: 1;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
     .modal-footer {
-      padding: 16px 24px;
+      padding: 14px 22px;
       border-top: 1px solid var(--border);
       display: flex;
+      align-items: center;
       justify-content: flex-end;
       gap: 10px;
       background: #11151c;
     }
 
-    /* Windows Explorer Tree Picker Component */
-    .explorer-box {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #0d1117;
+    .form-group {
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      gap: 6px;
     }
 
-    /* Windows 11 Address Bar */
-    .address-bar {
-      background: #161b22;
-      border-bottom: 1px solid var(--border);
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .form-input {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 13.5px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .form-input:focus { border-color: var(--blue); }
+
+    /* Windows Explorer Tree Browser */
+    .explorer-window {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #0a0d12;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .explorer-address-bar {
+      background: #12161f;
       padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .nav-up-btn {
-      background: #0d1117;
-      border: 1px solid var(--border);
-      color: var(--text);
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 14px;
     }
 
-    .nav-up-btn:hover:not(:disabled) { background: #21262d; border-color: rgba(255,255,255,0.2); }
-    .nav-up-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .nav-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: var(--text); }
+    .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-    .breadcrumbs-bar {
+    .breadcrumbs-box {
       flex: 1;
       display: flex;
       align-items: center;
       gap: 4px;
+      background: #0d1117;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
       overflow-x: auto;
       white-space: nowrap;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12.5px;
-      padding: 4px 6px;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
     }
 
     .crumb-pill {
       color: #58a6ff;
       cursor: pointer;
-      padding: 2px 6px;
-      border-radius: 4px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
     }
 
-    .crumb-pill:hover { background: rgba(88, 166, 255, 0.15); }
-    .crumb-pill.active { color: #fff; font-weight: 600; cursor: default; background: none; }
-    .crumb-slash { color: var(--text-muted); opacity: 0.5; }
+    .crumb-pill:hover { text-decoration: underline; color: #79c0ff; }
+    .crumb-pill.active { color: var(--text); font-weight: 600; cursor: default; text-decoration: none; }
+    .crumb-slash { color: var(--text-muted); opacity: 0.5; margin: 0 2px; }
 
     .explorer-filter {
       padding: 8px 12px;
-      background: #11151c;
-      border-bottom: 1px solid var(--border);
+      background: #0e1219;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .explorer-filter input {
-      width: 100%;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px 10px;
-      color: #fff;
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
       font-size: 12.5px;
       outline: none;
     }
 
     .folder-tree-list {
-      max-height: 220px;
-      min-height: 160px;
+      max-height: 250px;
       overflow-y: auto;
-      padding: 4px;
+      padding: 6px;
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
-    .folder-item-row {
+    .tree-row {
       display: flex;
       align-items: center;
-      gap: 10px;
       padding: 7px 10px;
       border-radius: 6px;
+      gap: 10px;
       cursor: pointer;
       user-select: none;
       transition: background 0.15s;
     }
 
-    .folder-item-row:hover { background: #161b22; }
-    .folder-item-row.selected { background: rgba(31, 111, 235, 0.15); border: 1px solid rgba(88, 166, 255, 0.3); }
+    .tree-row:hover { background: rgba(255, 255, 255, 0.05); }
+    .tree-row.selected { background: rgba(31, 111, 235, 0.15); border: 1px solid rgba(31, 111, 235, 0.3); }
 
-    .folder-check {
+    .item-check {
       width: 16px;
       height: 16px;
       cursor: pointer;
-      accent-color: #238636;
+      accent-color: var(--blue);
     }
 
-    .folder-icon { font-size: 18px; line-height: 1; }
-    .folder-name { font-size: 13.5px; font-weight: 500; flex: 1; }
-    .folder-badge { font-size: 11px; color: var(--text-muted); }
-    
+    .item-icon { font-size: 16px; }
+    .item-name {
+      font-size: 13px;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-badge {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
     .folder-open-btn {
-      background: none;
-      border: 1px solid var(--border);
-      color: #58a6ff;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      font-size: 11px;
       padding: 3px 8px;
       border-radius: 4px;
-      font-size: 11.5px;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
     }
 
-    .folder-open-btn:hover { background: rgba(88, 166, 255, 0.15); }
+    .folder-open-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 
     /* Selection Basket */
     .selection-basket {
-      background: #11151c;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: rgba(31, 111, 235, 0.08);
+      border: 1px dashed rgba(88, 166, 255, 0.3);
+      border-radius: var(--radius-sm);
       padding: 10px 14px;
       display: flex;
       flex-direction: column;
@@ -344,24 +405,22 @@
       justify-content: space-between;
       font-size: 12px;
       font-weight: 600;
-      color: var(--text-muted);
+      color: #58a6ff;
     }
 
     .basket-chips {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      max-height: 80px;
-      overflow-y: auto;
     }
 
     .basket-chip {
-      background: rgba(35, 134, 54, 0.15);
-      border: 1px solid rgba(46, 160, 67, 0.3);
-      color: #3fb950;
+      background: #1b2430;
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      color: var(--text);
+      font-size: 12px;
       padding: 3px 8px;
       border-radius: 6px;
-      font-size: 12px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -369,115 +428,124 @@
 
     .basket-chip-remove {
       cursor: pointer;
-      color: #f85149;
+      color: var(--text-muted);
       font-weight: bold;
     }
 
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 13px; font-weight: 600; color: var(--text); }
-    .form-input, .form-select {
-      width: 100%;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      color: #fff;
-      font-size: 13.5px;
-      outline: none;
-    }
-    .form-input:focus, .form-select:focus { border-color: var(--blue); }
+    .basket-chip-remove:hover { color: #f85149; }
 
-    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 13.5px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #238636;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: none;
+    }
   </style>
 </head>
 <body>
 
-  <div class="header">
+  <header class="header">
     <div class="brand-wrap">
       <div class="brand-icon">⚡</div>
       <div>
-        <div class="title">TX3 Cloud Share Manager</div>
-        <div class="subtitle">Kongsi folder terpilih (subfolder & multi-folder) secara read-only</div>
+        <div class="title">Pengurus Perkongsian TX3</div>
+        <div class="subtitle">Cipta & urus pautan fail atau folder read-only</div>
       </div>
     </div>
-    <button class="btn btn-success" onclick="openCreateModal()">
-      <span>+ Cipta Pautan Baru</span>
-    </button>
-  </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="https://vault.umiaq.top" class="btn" target="_blank">🏠 Vault</a>
+      <button class="btn btn-primary" onclick="openCreateModal()">
+        <span>+ Kongsi Fail / Folder Baru</span>
+      </button>
+    </div>
+  </header>
 
   <div class="card">
     <div class="card-title">
-      <span>📂 Senarai Folder Yang Sedang Dikongsi</span>
-      <button class="btn" style="margin-left: auto; padding: 4px 10px; font-size: 12px;" onclick="loadShares()">Refresh</button>
+      <span>🔗 Senarai Pautan Perkongsian Aktif</span>
     </div>
-    <div class="shares-list" id="sharesList">
+    <div class="shares-table" id="sharesList">
       <div class="empty-state">Memuatkan senarai perkongsian...</div>
     </div>
   </div>
 
-  <!-- Create Modal (Windows Explorer Picker) -->
+  <!-- Create Share Modal with Windows Explorer Browser -->
   <div class="modal-overlay" id="createModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 style="font-size: 17px; font-weight: 700;">Cipta Pautan Perkongsian Folder</h3>
-        <button class="btn" style="padding: 4px 8px;" onclick="closeCreateModal()">✕</button>
+        <div style="font-weight: 700; font-size: 16px;">Pilih Fail atau Folder untuk Dikongsi</div>
+        <button class="nav-btn" onclick="closeCreateModal()">✕</button>
       </div>
-
       <div class="modal-body">
-        
-        <!-- Windows 11 Tree Picker -->
+
+        <!-- Windows Explorer Style File & Folder Picker -->
         <div class="form-group">
-          <label>Pilih Satu atau Pelbagai Folder (Navigasi & Tandakan Checkbox):</label>
-          <div class="explorer-box">
-            
-            <!-- Address Bar / Breadcrumbs -->
-            <div class="address-bar">
-              <button id="navUpBtn" class="nav-up-btn" onclick="navigateUp()" title="Ke folder atas (Up one level)">⬆️</button>
-              <div class="breadcrumbs-bar" id="breadcrumbsBar">
-                <!-- Injected dynamically -->
+          <label class="form-label">Pelayar Storan (Pilih fail atau folder dalam /shares):</label>
+          
+          <div class="explorer-window">
+            <!-- Address Bar & Breadcrumbs -->
+            <div class="explorer-address-bar">
+              <button class="nav-btn" id="navUpBtn" onclick="navigateUp()" title="Naik satu tingkat">⬆</button>
+              <div class="breadcrumbs-box" id="breadcrumbsBar">
+                <span class="crumb-pill active">Memuatkan...</span>
               </div>
             </div>
 
-            <!-- Search Filter inside directory -->
+            <!-- Filter input -->
             <div class="explorer-filter">
-              <input type="text" id="filterFolderInput" placeholder="Cari subfolder dalam folder semasa..." oninput="filterCurrentFolders(this.value)">
+              <span>🔍</span>
+              <input type="text" id="explorerSearch" placeholder="Tapis senarai folder & fail..." oninput="filterCurrentItems(this.value)" />
             </div>
 
-            <!-- Folders List -->
+            <!-- Items List -->
             <div class="folder-tree-list" id="folderTreeList">
-              <div class="empty-state">Memuatkan folder...</div>
+              <div class="empty-state" style="padding: 20px;">Memuatkan storan...</div>
             </div>
           </div>
         </div>
 
         <!-- Selection Basket -->
-        <div class="selection-basket">
+        <div class="selection-basket" id="selectionBasket">
           <div class="basket-header">
-            <span id="basketCount">0 folder dipilih</span>
-            <span style="font-size: 11px; opacity: 0.7;">Tandakan checkbox mana-mana subfolder untuk gabungkan</span>
+            <span id="basketCount">0 item dipilih</span>
+            <span style="font-size: 11px; opacity: 0.8;">Boleh pilih folder tunggal, multi-folder, atau fail spesifik</span>
           </div>
           <div class="basket-chips" id="basketChips">
-            <span style="color: var(--text-muted); font-size: 12px; font-style: italic;">Belum ada folder ditandakan.</span>
+            <span style="color: var(--text-muted); font-size: 12px; font-style: italic;">Belum ada item ditandakan.</span>
           </div>
         </div>
 
         <!-- Title & Options -->
         <div class="form-group">
-          <label>Tajuk Pautan Perkongsian:</label>
-          <input type="text" id="shareTitle" class="form-input" placeholder="contoh: Gambar Sendai & Trip Jepun" required>
+          <label class="form-label">Tajuk Perkongsian (Pilihan):</label>
+          <input type="text" id="shareTitle" class="form-input" placeholder="Cth: Video Hari Guru / Setup Installer" />
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="form-group">
-            <label>Kata Laluan (Optional):</label>
-            <input type="password" id="sharePassword" class="form-input" placeholder="Kosongkan jika terbuka">
+            <label class="form-label">Kata Laluan (Pilihan):</label>
+            <input type="text" id="sharePassword" class="form-input" placeholder="Biarkan kosong jika awam" />
           </div>
           <div class="form-group">
-            <label>Tempoh Luput:</label>
-            <select id="expiresSelect" class="form-select">
-              <option value="0">Kekal Selamanya</option>
+            <label class="form-label">Tempoh Sah (Hari):</label>
+            <select id="shareExpires" class="form-input">
+              <option value="0">Kekal Selamanya (No Expiry)</option>
               <option value="1">1 Hari</option>
-              <option value="3">3 Hari</option>
               <option value="7">7 Hari</option>
               <option value="30">30 Hari</option>
             </select>
@@ -485,20 +553,30 @@
         </div>
 
       </div>
-
       <div class="modal-footer">
-        <button type="button" class="btn" onclick="closeCreateModal()">Batal</button>
-        <button type="button" class="btn btn-success" onclick="submitCreateShare()">Cipta Pautan Kongsi</button>
+        <button class="btn" onclick="closeCreateModal()">Batal</button>
+        <button class="btn btn-primary" onclick="submitCreateShare()">Cipta Pautan Perkongsian</button>
       </div>
     </div>
   </div>
+
+  <div class="toast" id="toast"></div>
 
   <script>
     const origin = window.location.origin;
     let currentDirPath = '/shares/3TB-ext';
     let parentDirPath = null;
     let rawSubfolders = [];
-    let selectedFolders = new Map(); // abs_path -> name
+    let rawFiles = [];
+    let selectedItems = new Map(); // abs_path -> { name, is_file, type, size }
+
+    function formatSize(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
 
     async function loadShares() {
       const container = document.getElementById('sharesList');
@@ -511,7 +589,7 @@
           container.innerHTML = `
             <div class="empty-state">
               <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
-              <p>Belum ada folder yang dikongsi. Klik butang di atas untuk cipta pautan pertama!</p>
+              <p>Belum ada fail atau folder yang dikongsi. Klik butang di atas untuk cipta pautan pertama!</p>
             </div>
           `;
           return;
@@ -523,17 +601,21 @@
           const statusBadge = isExpired 
             ? '<span class="badge" style="background: rgba(248,81,73,0.15); color: #f85149;">Tamat Tempoh</span>'
             : (s.has_password 
-                ? '<span class="badge badge-pw">🔒 Ada Password</span>' 
+                ? '<span class="badge badge-pw">🔒 Password</span>' 
                 : '<span class="badge badge-open">🌐 Awam</span>');
 
-          const multiBadge = s.folder_count > 1 ? `<span class="badge badge-multi">${s.folder_count} Folder</span>` : '';
+          const typeBadge = s.is_file
+            ? '<span class="badge badge-file">📄 Fail</span>'
+            : (s.folder_count > 1 ? `<span class="badge badge-multi">${s.folder_count} Folder</span>` : '<span class="badge" style="background: rgba(255,255,255,0.08); color: var(--text-muted);">📁 Folder</span>');
+
+          const icon = s.is_file ? '📄' : '📁';
 
           return `
             <div class="share-row">
               <div class="share-row-left">
                 <div class="share-name">
-                  <span>📁 ${s.title}</span>
-                  ${multiBadge}
+                  <span>${icon} ${s.title}</span>
+                  ${typeBadge}
                   ${statusBadge}
                 </div>
                 <div class="share-path">${s.folder_path}</div>
@@ -561,7 +643,7 @@
 
     async function browseDirectory(path = '/shares/3TB-ext') {
       const listEl = document.getElementById('folderTreeList');
-      listEl.innerHTML = '<div class="empty-state" style="padding: 20px;">Memuatkan subfolder...</div>';
+      listEl.innerHTML = '<div class="empty-state" style="padding: 20px;">Memuatkan direktori...</div>';
 
       try {
         const res = await fetch(`/api/shares/browse?path=${encodeURIComponent(path)}`);
@@ -569,15 +651,11 @@
         currentDirPath = data.current_path;
         parentDirPath = data.parent_path;
         rawSubfolders = data.folders || [];
+        rawFiles = data.files || [];
 
-        // Up button state
         document.getElementById('navUpBtn').disabled = !parentDirPath;
-
-        // Render Address Bar Breadcrumbs
         renderAddressBreadcrumbs(data.breadcrumbs || []);
-
-        // Render Folder List
-        renderFolderTree(rawSubfolders);
+        renderExplorerTree(rawSubfolders, rawFiles);
       } catch (err) {
         listEl.innerHTML = `<div class="empty-state">Ralat: ${err.message}</div>`;
       }
@@ -596,36 +674,68 @@
       }).join('');
     }
 
-    function renderFolderTree(folders) {
+    function getFileIcon(type) {
+      if (type === 'video') return '🎬';
+      if (type === 'image') return '🖼️';
+      if (type === 'audio') return '🎵';
+      if (type === 'archive') return '📦';
+      return '📄';
+    }
+
+    function renderExplorerTree(folders, files) {
       const listEl = document.getElementById('folderTreeList');
-      if (folders.length === 0) {
-        listEl.innerHTML = '<div class="empty-state" style="padding: 20px;">Tiada subfolder di sini.</div>';
+      if (folders.length === 0 && files.length === 0) {
+        listEl.innerHTML = '<div class="empty-state" style="padding: 20px;">Folder ini kosong.</div>';
         return;
       }
 
-      listEl.innerHTML = folders.map(f => {
-        const isChecked = selectedFolders.has(f.abs_path);
-        return `
-          <div class="folder-item-row ${isChecked ? 'selected' : ''}" onclick="toggleFolderSelect('${f.abs_path}', '${escapeHtml(f.name)}')">
-            <input type="checkbox" class="folder-check" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleFolderSelect('${f.abs_path}', '${escapeHtml(f.name)}')" />
-            <span class="folder-icon">📁</span>
-            <span class="folder-name">${f.name}</span>
-            <span class="folder-badge">${f.item_count} item</span>
+      let html = '';
+
+      // Render Subfolders
+      folders.forEach(f => {
+        const isChecked = selectedItems.has(f.abs_path);
+        html += `
+          <div class="tree-row ${isChecked ? 'selected' : ''}" onclick="toggleItemSelect('${f.abs_path}', '${escapeHtml(f.name)}', false, 'folder')">
+            <input type="checkbox" class="item-check" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleItemSelect('${f.abs_path}', '${escapeHtml(f.name)}', false, 'folder')" />
+            <span class="item-icon">📁</span>
+            <span class="item-name">${f.name}</span>
+            <span class="item-badge">${f.item_count} item</span>
             <button class="folder-open-btn" onclick="event.stopPropagation(); browseDirectory('${f.abs_path}')" title="Masuk ke dalam subfolder">
               <span>Buka</span> ➔
             </button>
           </div>
         `;
-      }).join('');
+      });
+
+      // Render Files
+      files.forEach(f => {
+        const isChecked = selectedItems.has(f.abs_path);
+        const icon = getFileIcon(f.type);
+        html += `
+          <div class="tree-row ${isChecked ? 'selected' : ''}" onclick="toggleItemSelect('${f.abs_path}', '${escapeHtml(f.name)}', true, '${f.type}', ${f.size})">
+            <input type="checkbox" class="item-check" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleItemSelect('${f.abs_path}', '${escapeHtml(f.name)}', true, '${f.type}', ${f.size})" />
+            <span class="item-icon">${icon}</span>
+            <span class="item-name">${f.name}</span>
+            <span class="item-badge">${formatSize(f.size)}</span>
+            <button class="folder-open-btn" onclick="event.stopPropagation(); quickShareFile('${f.abs_path}', '${escapeHtml(f.name)}', '${f.type}', ${f.size})" title="Kongsi fail ini sahaja">
+              + Kongsi Fail
+            </button>
+          </div>
+        `;
+      });
+
+      listEl.innerHTML = html;
     }
 
-    function filterCurrentFolders(query) {
+    function filterCurrentItems(query) {
       const q = query.toLowerCase().trim();
       if (!q) {
-        renderFolderTree(rawSubfolders);
+        renderExplorerTree(rawSubfolders, rawFiles);
         return;
       }
-      renderFolderTree(rawSubfolders.filter(f => f.name.toLowerCase().includes(q)));
+      const filteredF = rawSubfolders.filter(f => f.name.toLowerCase().includes(q));
+      const filteredFiles = rawFiles.filter(f => f.name.toLowerCase().includes(q));
+      renderExplorerTree(filteredF, filteredFiles);
     }
 
     function navigateUp() {
@@ -634,19 +744,28 @@
       }
     }
 
-    function toggleFolderSelect(absPath, name) {
-      if (selectedFolders.has(absPath)) {
-        selectedFolders.delete(absPath);
+    function toggleItemSelect(absPath, name, isFile = false, type = 'file', size = 0) {
+      if (selectedItems.has(absPath)) {
+        selectedItems.delete(absPath);
       } else {
-        selectedFolders.set(absPath, name);
+        selectedItems.set(absPath, { name, is_file: isFile, type, size });
       }
-      renderFolderTree(rawSubfolders);
+      renderExplorerTree(rawSubfolders, rawFiles);
       updateSelectionBasket();
     }
 
+    function quickShareFile(absPath, name, type, size) {
+      selectedItems.clear();
+      selectedItems.set(absPath, { name, is_file: true, type, size });
+      renderExplorerTree(rawSubfolders, rawFiles);
+      updateSelectionBasket();
+      document.getElementById('shareTitle').value = name;
+      document.getElementById('shareTitle').focus();
+    }
+
     function removeSelected(absPath) {
-      selectedFolders.delete(absPath);
-      renderFolderTree(rawSubfolders);
+      selectedItems.delete(absPath);
+      renderExplorerTree(rawSubfolders, rawFiles);
       updateSelectionBasket();
     }
 
@@ -655,21 +774,35 @@
       const chipsEl = document.getElementById('basketChips');
       const titleInput = document.getElementById('shareTitle');
 
-      const count = selectedFolders.size;
-      countEl.textContent = `${count} folder dipilih`;
+      const count = selectedItems.size;
 
       if (count === 0) {
-        chipsEl.innerHTML = '<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">Belum ada folder ditandakan.</span>';
+        countEl.textContent = '0 item dipilih';
+        chipsEl.innerHTML = '<span style="color: var(--text-muted); font-size: 12px; font-style: italic;">Belum ada item ditandakan.</span>';
         return;
       }
 
+      let foldersCount = 0;
+      let filesCount = 0;
+      selectedItems.forEach(item => {
+        if (item.is_file) filesCount++;
+        else foldersCount++;
+      });
+
+      let summaryText = '';
+      if (foldersCount > 0 && filesCount > 0) summaryText = `${foldersCount} folder, ${filesCount} fail dipilih`;
+      else if (filesCount > 0) summaryText = `${filesCount} fail dipilih`;
+      else summaryText = `${foldersCount} folder dipilih`;
+      countEl.textContent = summaryText;
+
       const names = [];
       let chipsHtml = '';
-      selectedFolders.forEach((name, path) => {
-        names.push(name);
+      selectedItems.forEach((item, path) => {
+        names.push(item.name);
+        const icon = item.is_file ? getFileIcon(item.type) : '📁';
         chipsHtml += `
           <span class="basket-chip">
-            📁 ${name}
+            ${icon} ${item.name}
             <span class="basket-chip-remove" onclick="removeSelected('${path}')" title="Buang">✕</span>
           </span>
         `;
@@ -681,7 +814,7 @@
         if (count === 1) {
           titleInput.value = names[0];
         } else {
-          titleInput.value = names.slice(0, 2).join(', ') + (count > 2 ? ` (+${count-2} folder)` : '');
+          titleInput.value = names.slice(0, 2).join(', ') + (count > 2 ? ` (+${count-2} lagi)` : '');
         }
         titleInput.dataset.autofilled = "true";
       }
@@ -692,13 +825,13 @@
     }
 
     function openCreateModal() {
-      selectedFolders.clear();
+      selectedItems.clear();
       updateSelectionBasket();
       document.getElementById('shareTitle').value = '';
       document.getElementById('sharePassword').value = '';
       delete document.getElementById('shareTitle').dataset.autofilled;
       document.getElementById('createModal').style.display = 'flex';
-      browseDirectory('/shares/3TB-ext');
+      browseDirectory(currentDirPath);
     }
 
     function closeCreateModal() {
@@ -706,69 +839,80 @@
     }
 
     async function submitCreateShare() {
-      if (selectedFolders.size === 0) {
-        alert('Sila tandakan sekurang-kurangnya satu folder yang ingin dikongsi.');
+      const paths = Array.from(selectedItems.keys());
+      if (paths.length === 0) {
+        alert("Sila pilih sekurang-kurangnya satu fail atau folder.");
         return;
       }
 
       const title = document.getElementById('shareTitle').value.trim();
-      if (!title) {
-        alert('Sila letakkan tajuk untuk pautan ini.');
-        return;
-      }
-
-      const folder_paths = Array.from(selectedFolders.keys());
-      const password = document.getElementById('sharePassword').value;
-      const expires_days = document.getElementById('expiresSelect').value;
+      const password = document.getElementById('sharePassword').value.trim();
+      const expiresDays = parseInt(document.getElementById('shareExpires').value) || 0;
 
       try {
         const res = await fetch('/api/shares/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ folder_paths, title, password, expires_days })
+          body: JSON.stringify({
+            folder_paths: paths,
+            title: title,
+            password: password,
+            expires_days: expiresDays
+          })
         });
+
         const data = await res.json();
         if (data.success) {
           closeCreateModal();
+          showToast("Pautan perkongsian berjaya dicipta!");
           loadShares();
-          const publicUrl = `${origin}/s/${data.share.share_token}`;
-          copyLink(publicUrl);
-          alert('Pautan berjaya dicipta dan telah disalin ke clipboard!\n\nURL: ' + publicUrl);
         } else {
-          alert('Ralat: ' + (data.error || 'Gagal cipta'));
+          alert("Ralat: " + (data.error || "Gagal mencipta pautan"));
         }
       } catch (err) {
-        alert('Ralat sambungan: ' + err.message);
+        alert("Ralat penghantaran: " + err.message);
       }
     }
 
-    async function deleteShare(token, title) {
-      if (!confirm(`Padam pautan kongsi untuk "${title}"? Orang luar tidak akan dapat akses lagi.`)) return;
+    async function deleteShare(shareToken, title) {
+      if (!confirm(`Adakah anda pasti mahu menghapuskan pautan perkongsian "${title}"?`)) {
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/shares/delete`, {
+        const res = await fetch('/api/shares/delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ share_token: token })
+          body: JSON.stringify({ share_token: shareToken })
         });
         const data = await res.json();
         if (data.success) {
+          showToast("Pautan berjaya dihapuskan");
           loadShares();
         } else {
-          alert('Gagal padam: ' + (data.error || 'Unknown'));
+          alert("Gagal menghapuskan pautan");
         }
       } catch (err) {
-        alert('Ralat: ' + err.message);
+        alert("Ralat: " + err.message);
       }
     }
 
     function copyLink(url) {
       navigator.clipboard.writeText(url).then(() => {
-        alert('Pautan disalin ke clipboard:\n' + url);
+        showToast("Pautan telah disalin ke clipboard!");
       }).catch(() => {
-        prompt('Salin pautan:', url);
+        prompt("Salin pautan perkongsian ini:", url);
       });
     }
 
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    // Initial load
     loadShares();
   </script>
 </body>

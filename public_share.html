@@ -355,6 +355,92 @@
       color: #fff;
     }
 
+    /* Single File Hero Card */
+    .single-file-container {
+      max-width: 840px;
+      margin: 10px auto 40px;
+      width: 100%;
+    }
+
+    .single-file-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sf-media-stage {
+      background: #000;
+      min-height: 260px;
+      max-height: 75vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .sf-media-stage video {
+      width: 100%;
+      max-height: 75vh;
+      outline: none;
+      background: #000;
+    }
+
+    .sf-media-stage img {
+      max-width: 100%;
+      max-height: 75vh;
+      object-fit: contain;
+    }
+
+    .sf-placeholder-stage {
+      padding: 60px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(180deg, #161b22, #0e1117);
+    }
+
+    .sf-placeholder-icon {
+      font-size: 72px;
+      margin-bottom: 16px;
+    }
+
+    .sf-meta-bar {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: #161b22;
+      border-top: 1px solid var(--border);
+    }
+
+    .sf-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .sf-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .sf-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     /* Empty state */
     .empty-state {
       padding: 80px 20px;
@@ -445,27 +531,19 @@
       outline: none;
     }
 
-    .video-loader {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #238636;
       color: #fff;
-      text-align: center;
-      padding: 40px 20px;
-    }
-
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255, 255, 255, 0.15);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 3000;
+      display: none;
     }
 
     @media (max-width: 600px) {
@@ -483,7 +561,7 @@
       <div class="brand-logo">⚡</div>
       <div>
         <span class="brand-title">TX3 Cloud Share</span>
-        <span class="brand-badge">Read-Only</span>
+        <span class="brand-badge" id="shareBadge">Read-Only</span>
       </div>
     </div>
     <div class="header-actions">
@@ -494,8 +572,8 @@
     </div>
   </header>
 
-  <!-- Subheader & Breadcrumbs -->
-  <div class="subheader">
+  <!-- Subheader & Breadcrumbs (Hidden in single file view) -->
+  <div class="subheader" id="subheaderSection">
     <div class="folder-title-wrap">
       <div class="folder-title">
         <span id="headerIcon">📁</span>
@@ -507,8 +585,8 @@
     </div>
   </div>
 
-  <!-- Search & Stats Toolbar -->
-  <div class="toolbar">
+  <!-- Search & Stats Toolbar (Hidden in single file view) -->
+  <div class="toolbar" id="toolbarSection">
     <div class="search-box">
       <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="searchInput" placeholder="Cari fail dalam folder ini..." oninput="handleSearch(this.value)">
@@ -518,12 +596,12 @@
     </div>
   </div>
 
-  <!-- Main Files Grid -->
-  <main class="main-content">
+  <!-- Main Content Container -->
+  <main class="main-content" id="mainContainer">
     <div class="files-grid" id="filesGrid">
       <div class="empty-state">
         <div class="empty-icon">⏳</div>
-        <p>Memuatkan kandungan folder...</p>
+        <p>Memuatkan fail...</p>
       </div>
     </div>
   </main>
@@ -532,12 +610,12 @@
   <div class="pw-overlay" id="passwordModal" style="display: none;">
     <div class="pw-card">
       <div class="pw-icon">🔒</div>
-      <h3>Folder Dilindungi</h3>
-      <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Folder ini dikunci dengan kata laluan oleh pemilik.</p>
+      <h3>Item Dilindungi</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">Pautan ini dikunci dengan kata laluan oleh pemilik.</p>
       <form onsubmit="handlePasswordSubmit(event)">
         <input type="password" id="sharePasswordInput" class="pw-input" placeholder="Masukkan Kata Laluan" autofocus required />
         <div id="pwError" style="color: #f85149; font-size: 13px; margin-bottom: 12px; display: none;">Kata laluan tidak tepat.</div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Buka Folder</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Buka Pautan</button>
       </form>
     </div>
   </div>
@@ -547,25 +625,25 @@
     <div class="lb-header">
       <span id="lbTitle" style="font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;">Preview</span>
       <div style="display: flex; gap: 8px;">
-        <a id="lbDownloadBtn" href="#" class="btn btn-primary" download>Download Asal</a>
+        <a id="lbDownloadBtn" href="#" class="btn btn-primary" download>Download</a>
         <button class="btn" onclick="closeLightbox()">Tutup</button>
       </div>
     </div>
     <div class="lb-stage" id="lbStage"></div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script>
     const urlParts = window.location.pathname.split('/');
-    // Expected path: /s/<token>
     const shareToken = urlParts[2] || '';
     let currentSubpath = '';
     let rawItems = [];
     let currentPassword = '';
     let folderNames = [];
-    let videoPollTimer = null;
 
     function formatSize(bytes) {
-      if (!bytes || bytes === 0) return '--';
+      if (!bytes || bytes === 0) return '0 B';
       const k = 1024;
       const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -574,8 +652,7 @@
 
     async function loadFolder(subpath = '') {
       currentSubpath = subpath;
-      const grid = document.getElementById('filesGrid');
-      grid.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><p>Memuatkan fail...</p></div>';
+      const mainContainer = document.getElementById('mainContainer');
 
       const url = `/api/share/${shareToken}/list?subpath=${encodeURIComponent(subpath)}&pwd=${encodeURIComponent(currentPassword)}`;
       try {
@@ -585,13 +662,24 @@
           return;
         }
         if (res.status === 404) {
-          grid.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>Pautan Tidak Dijumpai</h3><p>Pautan perkongsian ini mungkin telah tamat tempoh atau dipadam.</p></div>';
+          mainContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>Pautan Tidak Dijumpai</h3><p>Pautan perkongsian ini mungkin telah tamat tempoh atau dipadam.</p></div>';
           return;
         }
 
         const data = await res.json();
         document.getElementById('passwordModal').style.display = 'none';
+
+        // Check if Single File Share
+        if (data.is_file && data.file) {
+          renderSingleFileView(data.file, data.share_title);
+          return;
+        }
+
+        // Folder share view
+        document.getElementById('subheaderSection').style.display = 'flex';
+        document.getElementById('toolbarSection').style.display = 'flex';
         document.getElementById('folderTitle').textContent = data.share_title || 'Shared Folder';
+        document.getElementById('shareBadge').textContent = 'Folder Share';
         if (data.folder_names) folderNames = data.folder_names;
 
         // Setup ZIP button
@@ -607,8 +695,83 @@
         renderBreadcrumbs(subpath);
         renderFiles(rawItems);
       } catch (err) {
-        grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Ralat memuatkan: ${err.message}</p></div>`;
+        mainContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Ralat memuatkan: ${err.message}</p></div>`;
       }
+    }
+
+    function renderSingleFileView(file, title) {
+      document.getElementById('subheaderSection').style.display = 'none';
+      document.getElementById('toolbarSection').style.display = 'none';
+      document.getElementById('downloadZipBtn').style.display = 'none';
+      document.getElementById('shareBadge').textContent = 'File Share';
+
+      const downloadUrl = `/api/share/${shareToken}/download?pwd=${encodeURIComponent(currentPassword)}`;
+      const streamUrl = `/api/share/${shareToken}/stream?pwd=${encodeURIComponent(currentPassword)}`;
+
+      let stageHtml = '';
+      if (file.type === 'video') {
+        stageHtml = `<video src="${streamUrl}" controls autoplay playsinline></video>`;
+      } else if (file.type === 'image') {
+        stageHtml = `<img src="${downloadUrl}" alt="${file.name}" />`;
+      } else if (file.type === 'audio') {
+        stageHtml = `
+          <div class="sf-placeholder-stage">
+            <div class="sf-placeholder-icon">🎵</div>
+            <audio src="${downloadUrl}" controls style="width: 100%; max-width: 480px;"></audio>
+          </div>
+        `;
+      } else {
+        const icon = file.type === 'archive' ? '📦' : (file.type === 'document' ? '📄' : '📁');
+        stageHtml = `
+          <div class="sf-placeholder-stage">
+            <div class="sf-placeholder-icon">${icon}</div>
+            <div style="font-size: 18px; font-weight: 700;">${file.name}</div>
+            <div style="color: var(--text-muted); font-size: 13.5px; margin-top: 6px;">${formatSize(file.size)} • Format ${file.ext}</div>
+          </div>
+        `;
+      }
+
+      const mainContainer = document.getElementById('mainContainer');
+      mainContainer.innerHTML = `
+        <div class="single-file-container">
+          <div class="single-file-card">
+            <div class="sf-media-stage">
+              ${stageHtml}
+            </div>
+            <div class="sf-meta-bar">
+              <div>
+                <div class="sf-title">${title || file.name}</div>
+                <div class="sf-sub">${file.name} • ${formatSize(file.size)}</div>
+              </div>
+              <div class="sf-actions">
+                <a href="${downloadUrl}" class="btn btn-primary" download>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Download Fail (${formatSize(file.size)})</span>
+                </a>
+                <button class="btn" onclick="copyDirectLink('${downloadUrl}')">
+                  <span>📋 Salin Link</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function copyDirectLink(relUrl) {
+      const fullUrl = window.location.origin + relUrl;
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        showToast("Direct download link telah disalin!");
+      }).catch(() => {
+        prompt("Salin pautan fail ini:", fullUrl);
+      });
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3000);
     }
 
     function renderBreadcrumbs(subpath) {
@@ -635,7 +798,13 @@
     }
 
     function renderFiles(items) {
-      const grid = document.getElementById('filesGrid');
+      const mainContainer = document.getElementById('mainContainer');
+      let grid = document.getElementById('filesGrid');
+      if (!grid) {
+        mainContainer.innerHTML = '<div class="files-grid" id="filesGrid"></div>';
+        grid = document.getElementById('filesGrid');
+      }
+
       document.getElementById('statsInfo').textContent = `${items.length} item`;
 
       if (items.length === 0) {
@@ -715,11 +884,6 @@
     }
 
     function openMediaPreview(name, relPath, type) {
-      if (videoPollTimer) {
-        clearInterval(videoPollTimer);
-        videoPollTimer = null;
-      }
-
       const decodedName = decodeURIComponent(name);
       const decodedPath = decodeURIComponent(relPath);
       const downloadUrl = `/api/share/${shareToken}/download?path=${encodeURIComponent(decodedPath)}&pwd=${encodeURIComponent(currentPassword)}`;
@@ -738,16 +902,11 @@
         `;
         document.getElementById('mediaLightbox').classList.add('active');
       } else {
-        // Direct download for documents / others
         window.location.href = downloadUrl;
       }
     }
 
     function closeLightbox() {
-      if (videoPollTimer) {
-        clearInterval(videoPollTimer);
-        videoPollTimer = null;
-      }
       const lb = document.getElementById('mediaLightbox');
       lb.classList.remove('active');
       const stage = document.getElementById('lbStage');
@@ -760,7 +919,7 @@
     if (shareToken) {
       loadFolder('');
     } else {
-      document.getElementById('filesGrid').innerHTML = '<div class="empty-state"><h3>Tiada token perkongsian.</h3></div>';
+      document.getElementById('mainContainer').innerHTML = '<div class="empty-state"><h3>Tiada token perkongsian.</h3></div>';
     }
   </script>
 </body>

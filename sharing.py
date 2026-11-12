@@ -1,8 +1,11 @@
 """
-TX3 Shared Folders Engine (Multi-Choice, Windows Explorer Tree Browser & Video Transcoder)
-Supports single or multiple selected folders, virtual root mapping,
-interactive deep directory browsing, zip downloads, password protection,
-on-demand video transcoding (H.264/AAC for browser compatibility), and video thumbnails.
+TX3 Shared Folders & Files Engine (Multi-Choice, Windows Explorer Tree Browser, Video Transcoder & File Sharing)
+Supports:
+- Single & multiple folder shares (virtual root mapping)
+- Single file shares with dedicated media viewer / download
+- Windows Explorer directory browser with both subfolders & files
+- On-demand video transcoding (H.264/AAC) and video thumbnails
+- Password protection, expiry dates, and ZIP downloads
 """
 
 import os
@@ -26,7 +29,8 @@ THUMB_CACHE_DIR = '/opt/tx3-vault/cinema_cache/thumbs'
 
 IGNORED_NAMES = {
     '$RECYCLE.BIN', 'System Volume Information', '.git', '.DS_Store', 
-    'Thumbs.db', 'pagefile.sys', 'DumpStack.log.tmp', 'msdownld.tmp'
+    'Thumbs.db', 'pagefile.sys', 'DumpStack.log.tmp', 'msdownld.tmp',
+    '_original_mpg'
 }
 
 VIDEO_EXTS = {
@@ -38,7 +42,6 @@ IMAGE_EXTS = {
     '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.svg', '.tiff'
 }
 
-# Thread lock & registry for background transcoding jobs
 TRANSCODE_LOCK = threading.Lock()
 ACTIVE_TRANSCODES = {}
 
@@ -66,15 +69,10 @@ def get_video_thumbnail(file_path):
     return None
 
 def get_transcode_status(file_path):
-    """
-    Returns (status, target_path)
-    status: 'ready' (file can be served via Range), 'processing', 'error'
-    """
     if not os.path.exists(file_path):
         return 'error', file_path
 
     ext = os.path.splitext(file_path)[1].lower()
-    # Native web video formats do not need transcoding
     if ext in ('.mp4', '.m4v', '.webm'):
         return 'ready', file_path
 
@@ -118,10 +116,6 @@ def get_transcode_status(file_path):
         return 'processing', cached_mp4
 
 def get_or_transcode_video(file_path, wait_timeout=15):
-    """
-    Returns the path to a web-compatible mp4 file.
-    If transcode is needed, waits up to wait_timeout seconds.
-    """
     status, path = get_transcode_status(file_path)
     if status == 'ready':
         return path
@@ -182,22 +176,22 @@ def create_share(folder_paths, title=None, password=None, expires_days=0, allow_
     for fp in folder_paths:
         abs_p = os.path.abspath(fp)
         try:
-            if os.path.commonpath([BASE_STORAGE, abs_p]) == BASE_STORAGE and os.path.isdir(abs_p):
+            if os.path.commonpath([BASE_STORAGE, abs_p]) == BASE_STORAGE and os.path.exists(abs_p):
                 valid_paths.append(abs_p)
         except Exception:
             continue
 
     if not valid_paths:
-        raise ValueError("Tiada folder sah yang dipilih dalam /shares.")
+        raise ValueError("Tiada folder atau fail sah yang dipilih dalam /shares.")
 
     random_bytes = os.urandom(8)
     share_token = f"s_{hashlib.sha256(random_bytes + str(time.time()).encode()).hexdigest()[:10]}"
 
     if not title:
         if len(valid_paths) == 1:
-            title = os.path.basename(valid_paths[0].rstrip('/' + chr(92))) or "Shared Folder"
+            title = os.path.basename(valid_paths[0].rstrip('/' + chr(92))) or "Shared Item"
         else:
-            title = f"Perkongsian {len(valid_paths)} Folder"
+            title = f"Perkongsian {len(valid_paths)} Item"
 
     pwd_hash = hashlib.sha256(password.strip().encode()).hexdigest() if (password and password.strip()) else None
     expires_at = int(time.time()) + (int(expires_days) * 86400) if expires_days and int(expires_days) > 0 else 0
@@ -228,7 +222,9 @@ def list_all_shares():
             d['is_expired'] = (d['expires_at'] > 0 and d['expires_at'] < now)
             d['has_password'] = bool(d['password_hash'])
             del d['password_hash']
-            d['folder_count'] = len(get_share_folder_paths(d))
+            paths = get_share_folder_paths(d)
+            d['folder_count'] = len(paths)
+            d['is_file'] = (len(paths) == 1 and os.path.isfile(paths[0]))
             result.append(d)
         return result
 
@@ -241,7 +237,31 @@ def get_share(share_token):
         now = time.time()
         d['is_expired'] = (d['expires_at'] > 0 and d['expires_at'] < now)
         d['has_password'] = bool(d['password_hash'])
-        d['folder_paths'] = get_share_folder_paths(d)
+        paths = get_share_folder_paths(d)
+        d['folder_paths'] = paths
+        d['is_file'] = False
+        d['file_info'] = None
+
+        if len(paths) == 1 and os.path.isfile(paths[0]):
+            d['is_file'] = True
+            fp = paths[0]
+            ext = os.path.splitext(fp)[1].lower()
+            file_type = 'file'
+            if ext in VIDEO_EXTS: file_type = 'video'
+            elif ext in IMAGE_EXTS: file_type = 'image'
+            elif ext in ('.mp3', '.flac', '.wav', '.ogg', '.m4a'): file_type = 'audio'
+            elif ext in ('.zip', '.tar', '.gz', '.7z', '.rar'): file_type = 'archive'
+            elif ext in ('.pdf', '.txt', '.doc', '.docx'): file_type = 'document'
+
+            guessed, _ = mimetypes.guess_type(fp)
+            d['file_info'] = {
+                'name': os.path.basename(fp),
+                'size': os.path.getsize(fp),
+                'mtime': int(os.path.getmtime(fp)),
+                'type': file_type,
+                'ext': ext.lstrip('.').upper(),
+                'mime': guessed or 'application/octet-stream'
+            }
         return d
 
 def record_view(share_token):
@@ -268,17 +288,13 @@ def hmac_compare(a, b):
     return hmac.compare_digest(a, b)
 
 def resolve_shared_path(share, subpath=''):
-    """
-    Resolves virtual subpath into actual filesystem path.
-    For single folder: subpath is relative to folder_path.
-    For multi folder:
-       subpath = "" -> virtual root (returns None)
-       subpath = "idx" -> root of folder_paths[idx]
-       subpath = "idx/rest/of/path" -> folder_paths[idx]/rest/of/path
-    """
     paths = share.get('folder_paths') or get_share_folder_paths(share)
     if not paths:
         return None
+
+    # Single file share: any subpath resolves to the file
+    if share.get('is_file') or (len(paths) == 1 and os.path.isfile(paths[0])):
+        return paths[0]
 
     clean_sub = subpath.strip('/').replace('\\', '/')
 
@@ -292,7 +308,6 @@ def resolve_shared_path(share, subpath=''):
             return None
         return target_abs if os.path.exists(target_abs) else None
     else:
-        # Multi-folder share
         if not clean_sub:
             return None  # Virtual root
         parts = clean_sub.split('/', 1)
@@ -314,6 +329,29 @@ def list_folder_contents(share, subpath=''):
     if not paths:
         return None
 
+    # Handle Single File Share
+    if share.get('is_file') or (len(paths) == 1 and os.path.isfile(paths[0])):
+        fi = share.get('file_info')
+        if not fi:
+            fp = paths[0]
+            ext = os.path.splitext(fp)[1].lower()
+            fi = {
+                'name': os.path.basename(fp),
+                'size': os.path.getsize(fp),
+                'mtime': int(os.path.getmtime(fp)),
+                'type': 'video' if ext in VIDEO_EXTS else ('image' if ext in IMAGE_EXTS else 'file'),
+                'ext': ext.lstrip('.').upper(),
+                'mime': mimetypes.guess_type(fp)[0] or 'application/octet-stream'
+            }
+        return {
+            'share_title': share['title'],
+            'is_file': True,
+            'file': fi,
+            'current_subpath': '',
+            'items': [],
+            'allow_zip': False
+        }
+
     clean_sub = subpath.strip('/').replace('\\', '/')
 
     # Multi-folder root: display the chosen folders
@@ -333,6 +371,7 @@ def list_folder_contents(share, subpath=''):
         return {
             'share_title': share['title'],
             'current_subpath': '',
+            'is_file': False,
             'is_virtual_root': True,
             'folder_names': [os.path.basename(p.rstrip('/' + chr(92))) for p in paths],
             'items': items,
@@ -406,6 +445,7 @@ def list_folder_contents(share, subpath=''):
     return {
         'share_title': share['title'],
         'current_subpath': clean_sub,
+        'is_file': False,
         'is_virtual_root': False,
         'folder_names': [os.path.basename(p.rstrip('/' + chr(92))) for p in paths],
         'items': items,
@@ -414,7 +454,7 @@ def list_folder_contents(share, subpath=''):
 
 def browse_directory_tree(req_path='/shares/3TB-ext'):
     """
-    Windows Explorer style backend: returns subfolders in the requested directory,
+    Windows Explorer style backend: returns subfolders AND files in the requested directory,
     along with clickable breadcrumb trail.
     """
     if not req_path or req_path in ('/', '\\', 'root'):
@@ -441,10 +481,13 @@ def browse_directory_tree(req_path='/shares/3TB-ext'):
             crumbs.append({'name': p, 'path': accum.replace('\\', '/')})
 
     subfolders = []
+    files = []
     try:
-        entries = sorted(os.scandir(abs_target), key=lambda e: e.name.lower())
+        entries = sorted(os.scandir(abs_target), key=lambda e: (not e.is_dir(), e.name.lower()))
         for entry in entries:
-            if entry.is_dir() and entry.name not in IGNORED_NAMES and not entry.name.startswith('.'):
+            if entry.name in IGNORED_NAMES or entry.name.startswith('.'):
+                continue
+            if entry.is_dir():
                 child_count = 0
                 try:
                     for _ in os.scandir(entry.path):
@@ -455,6 +498,26 @@ def browse_directory_tree(req_path='/shares/3TB-ext'):
                     'name': entry.name,
                     'abs_path': entry.path.replace('\\', '/'),
                     'item_count': child_count
+                })
+            elif entry.is_file():
+                ext = os.path.splitext(entry.name)[1].lower()
+                file_type = 'file'
+                if ext in VIDEO_EXTS: file_type = 'video'
+                elif ext in IMAGE_EXTS: file_type = 'image'
+                elif ext in ('.mp3', '.flac', '.wav', '.ogg', '.m4a'): file_type = 'audio'
+                elif ext in ('.zip', '.tar', '.gz', '.7z', '.rar'): file_type = 'archive'
+                elif ext in ('.pdf', '.txt', '.doc', '.docx'): file_type = 'document'
+                
+                size = 0
+                try: size = entry.stat().st_size
+                except: pass
+
+                files.append({
+                    'name': entry.name,
+                    'abs_path': entry.path.replace('\\', '/'),
+                    'size': size,
+                    'type': file_type,
+                    'ext': ext.lstrip('.').upper()
                 })
     except Exception as e:
         print(f"Error scanning browse tree: {e}")
@@ -468,5 +531,6 @@ def browse_directory_tree(req_path='/shares/3TB-ext'):
         'display_path': 'Z:\\' + os.path.relpath(abs_target, BASE_STORAGE).replace('/', '\\').replace('.', ''),
         'parent_path': parent_path,
         'breadcrumbs': crumbs,
-        'folders': subfolders
+        'folders': subfolders,
+        'files': files
     }
