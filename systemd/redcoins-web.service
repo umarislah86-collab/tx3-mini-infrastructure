@@ -1,0 +1,14 @@
+[Unit]
+Description=RedCoins Web App (Reconciliation Dashboard)
+After=network.target local-fs.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/shares/3TB-ext/Projects/redcoins-web/dist
+ExecStart=/usr/bin/python3 -m http.server 3036 --directory /shares/3TB-ext/Projects/redcoins-web/dist
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
